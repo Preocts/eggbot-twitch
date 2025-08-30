@@ -4,6 +4,7 @@ import json
 import secrets
 import threading
 import time
+import urllib.parse
 
 from werkzeug.serving import make_server
 from werkzeug.wrappers import Request
@@ -45,6 +46,7 @@ def prompt_to_auth_url(
         f"&client_id={client_id}"
         f"&redirect_uri={redirect_uri}"
         f"&scope={scope}"
+        f"&scope={urllib.parse.quote(scope)}"
         f"&state={state}"
         f"&force_verify={str(force_verify).lower()}"
     )
