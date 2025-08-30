@@ -4,14 +4,10 @@ import json
 import secrets
 import threading
 import time
-from typing import TYPE_CHECKING
 
 from werkzeug.serving import make_server
 from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
-
-if TYPE_CHECKING:
-    from _typeshed.wsgi import WSGIApplication
 
 _AUTHO_TIMEOUT_SECONDS = 30
 
@@ -20,20 +16,20 @@ caught_request: Request | None = None
 
 class RedirectCatcher(threading.Thread):
 
-    def __init__(self, application: WSGIApplication) -> None:
+    def __init__(self, host: str, port: int) -> None:
         super().__init__()
-        self.server = make_server("127.0.0.1", 5005, application, threaded=True)
+        self.server = make_server(host, port, self.application, threaded=True)
 
     def run(self) -> None:
         self.server.serve_forever()
 
+    @staticmethod
+    @Request.application
+    def application(request: Request) -> Response:
+        global caught_request
+        caught_request = request
 
-@Request.application
-def application(request: Request) -> Response:
-    global caught_request
-    caught_request = request
-
-    return Response("🥚")
+        return Response("🥚")
 
 
 def prompt_to_auth_url(
@@ -52,12 +48,36 @@ def prompt_to_auth_url(
         f"&state={state}"
         f"&force_verify={str(force_verify).lower()}"
     )
-    print("Open the following url in your browswer to authorize this app with Twitch:")
+    print("Open the following url in your browser to authorize this app with Twitch:")
     print(url)
 
 
+def start_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
+    """Start the thread containing the werkzeug webserver."""
+    auth_catcher.start()
+
+
+def stop_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
+    """Stop the thread containing the wekzeug webserver, block until closed."""
+    auth_catcher.server.shutdown()
+    auth_catcher.join()
+
+
+def wait_for_auth(timeout_seconds: int) -> None:
+    """Wait for the global 'caught_request' to be populated or until timeout expires."""
+    timeout_at = time.time() + _AUTHO_TIMEOUT_SECONDS
+    counter = ""
+    while not caught_request:
+        if counter != f"{int(timeout_at - time.time())}":
+            counter = f"{int(timeout_at - time.time())}"
+            print(f"\rTimeout in {counter:<10}", end="")
+
+        if time.time() >= timeout_at:
+            raise TimeoutError()
+
+
 def main() -> int:
-    catcher = RedirectCatcher(application)
+    catcher = RedirectCatcher(host="127.0.0.1", port=5005)
 
     prompt_to_auth_url(
         client_id="es76t05hv4zarhowki8wypjfa7yqd0",
@@ -66,34 +86,21 @@ def main() -> int:
         state=secrets.token_urlsafe(64),
     )
 
+    start_auth_catcher_thread(catcher)
+
     try:
-        print("Waiting for user auth...")
-        catcher.start()
-
-        timeout_at = time.time() + _AUTHO_TIMEOUT_SECONDS
-        counter = ""
-        while not caught_request:
-            if counter != f"{int(timeout_at - time.time())}":
-                counter = f"{int(timeout_at - time.time())}"
-                print(f"\rTimeout in {counter:<10}", end="")
-
-            if time.time() >= timeout_at:
-                raise TimeoutError()
+        wait_for_auth(_AUTHO_TIMEOUT_SECONDS)
 
     except KeyboardInterrupt:
-        catcher.server.shutdown()
-        catcher.join()
+        print("\nUser cancelled operation.")
         return 1
 
     except TimeoutError:
         print("\nTimed out while waiting for user to authorize app.")
-        catcher.server.shutdown()
-        catcher.join()
         return 1
 
-    print("Shutting down catcher...")
-    catcher.server.shutdown()
-    catcher.join()
+    finally:
+        stop_auth_catcher_thread(catcher)
 
     print(json.dumps(caught_request.__dict__, indent=2, default=str))
 
