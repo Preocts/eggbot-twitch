@@ -85,7 +85,7 @@ def wait_for_auth(timeout_seconds: int) -> None:
             raise TimeoutError()
 
 
-def main() -> int:
+def get_autho_code() -> str | None:
     catcher = RedirectCatcher(host=CALLBACK_HOST, port=CALLBACK_PORT)
     prompt_to_auth_url(
         client_id=CLIENT_ID,
@@ -101,19 +101,19 @@ def main() -> int:
 
     except KeyboardInterrupt:
         print("\nUser cancelled operation.")
-        return 1
+        return None
 
     except TimeoutError:
         print("\nTimed out while waiting for user to authorize app.")
-        return 1
+        return None
 
     finally:
         stop_auth_catcher_thread(catcher)
 
     print(json.dumps(caught_request.__dict__, indent=2, default=str))
 
-    return 0
+    return None
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(get_autho_code())
