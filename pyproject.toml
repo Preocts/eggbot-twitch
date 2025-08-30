@@ -39,6 +39,7 @@ dev = [
     "pytest",
     "pytest-randomly",
     "coverage",
+    "types-requests>=2.32.4.20250809",
 ]
 
 [project.urls]
