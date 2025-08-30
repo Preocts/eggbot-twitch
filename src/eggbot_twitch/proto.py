@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import secrets
 import threading
+import time
 from typing import TYPE_CHECKING
 
 from werkzeug.serving import make_server
@@ -11,6 +12,8 @@ from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
     from _typeshed.wsgi import WSGIApplication
+
+_AUTHO_TIMEOUT_SECONDS = 30
 
 caught_request: Request | None = None
 
@@ -30,10 +33,10 @@ def application(request: Request) -> Response:
     global caught_request
     caught_request = request
 
-    return Response("Caught the request, you can close this window now.")
+    return Response("🥚")
 
 
-def direct_to_auth_url(
+def prompt_to_auth_url(
     client_id: str,
     redirect_uri: str,
     scope: str,
@@ -56,7 +59,7 @@ def direct_to_auth_url(
 def main() -> int:
     catcher = RedirectCatcher(application)
 
-    direct_to_auth_url(
+    prompt_to_auth_url(
         client_id="es76t05hv4zarhowki8wypjfa7yqd0",
         redirect_uri="http://localhost:5005/callback",
         scope="user:bot",
@@ -67,10 +70,25 @@ def main() -> int:
         print("Waiting for user auth...")
         catcher.start()
 
+        timeout_at = time.time() + _AUTHO_TIMEOUT_SECONDS
+        counter = ""
         while not caught_request:
-            ...
+            if counter != f"{int(timeout_at - time.time())}":
+                counter = f"{int(timeout_at - time.time())}"
+                print(f"\rTimeout in {counter:<10}", end="")
+
+            if time.time() >= timeout_at:
+                raise TimeoutError()
 
     except KeyboardInterrupt:
+        catcher.server.shutdown()
+        catcher.join()
+        return 1
+
+    except TimeoutError:
+        print("\nTimed out while waiting for user to authorize app.")
+        catcher.server.shutdown()
+        catcher.join()
         return 1
 
     print("Shutting down catcher...")
