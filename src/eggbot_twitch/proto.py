@@ -10,6 +10,13 @@ from werkzeug.serving import make_server
 from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
 
+# TODO: Move to config or .env file
+CLIENT_ID = "es76t05hv4zarhowki8wypjfa7yqd0"
+SCOPE = "user:read:chat user:read:email"
+CALLBACK_HOST = "localhost"
+CALLBACK_PORT = 5005
+CALLBACK_URL = "http://localhost:5005/callback"
+
 _AUTHO_TIMEOUT_SECONDS = 30
 
 caught_request: Request | None = None
@@ -42,10 +49,10 @@ def prompt_to_auth_url(
     force_verify: bool = True,
 ) -> None:
     url = (
-        "https://id.twitch.tv/oauth2/authorize?response_type=code"
+        "https://id.twitch.tv/oauth2/authorize"
+        "?response_type=code"
         f"&client_id={client_id}"
         f"&redirect_uri={redirect_uri}"
-        f"&scope={scope}"
         f"&scope={urllib.parse.quote(scope)}"
         f"&state={state}"
         f"&force_verify={str(force_verify).lower()}"
@@ -67,7 +74,7 @@ def stop_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
 
 def wait_for_auth(timeout_seconds: int) -> None:
     """Wait for the global 'caught_request' to be populated or until timeout expires."""
-    timeout_at = time.time() + _AUTHO_TIMEOUT_SECONDS
+    timeout_at = time.time() + timeout_seconds
     counter = ""
     while not caught_request:
         if counter != f"{int(timeout_at - time.time())}":
@@ -79,12 +86,11 @@ def wait_for_auth(timeout_seconds: int) -> None:
 
 
 def main() -> int:
-    catcher = RedirectCatcher(host="127.0.0.1", port=5005)
-
+    catcher = RedirectCatcher(host=CALLBACK_HOST, port=CALLBACK_PORT)
     prompt_to_auth_url(
-        client_id="es76t05hv4zarhowki8wypjfa7yqd0",
-        redirect_uri="http://localhost:5005/callback",
-        scope="user:bot",
+        client_id=CLIENT_ID,
+        redirect_uri=CALLBACK_URL,
+        scope=SCOPE,
         state=secrets.token_urlsafe(64),
     )
 
