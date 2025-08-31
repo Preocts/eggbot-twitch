@@ -6,7 +6,7 @@ import urllib.parse
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Authorization:
-    """Represents the response of an authorizatoin response."""
+    """Represent the response of an authorizatoin request."""
 
     state: str = ""
     code: str = ""
