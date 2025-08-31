@@ -26,11 +26,11 @@ _caught_autho_request: Request | None = None
 class Authorization:
     """Represents the response of an authorizatoin response."""
 
-    state: str
-    code: str
-    scope: str
-    error: str
-    error_description: str
+    state: str = ""
+    code: str = ""
+    scope: str = ""
+    error: str = ""
+    error_description: str = ""
 
     @classmethod
     def parse_url(cls, url: str) -> Authorization:

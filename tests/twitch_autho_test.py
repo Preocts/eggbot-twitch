@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import io
 import threading
 import time
 from collections.abc import Generator
@@ -36,18 +37,22 @@ def shorten_autho_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_autho_code_success() -> None:
     """Validate that autho code is successfully extracted from callback."""
     callback_url = "http://localhost:5005/callback?code=mock_code&scope=user:read:chat+user:read:email&state=123"
-    expected = proto.Authorization("123", "mock_code", "user:read:chat user:read:email", "", "")
+    expected_autho = proto.Authorization("123", "mock_code", "user:read:chat user:read:email")
+    expected_stdout = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=mock&redirect_uri=http://localhost:5005/callback&scope=user%3Aread%3Achat%20user%3Aread%3Aemail&state="
+    stdout = io.StringIO()
 
-    with delayed_get_request(1, callback_url):
-        authorization = proto.get_autho_code(
-            callback_host="localhost",
-            callback_port=5005,
-            twitch_app_client_id="mock",
-            redirect_url="http://localhost:5005/callback",
-            scope="user:read:chat user:read:email",
-        )
+    with contextlib.redirect_stdout(stdout):
+        with delayed_get_request(1, callback_url):
+            authorization = proto.get_autho_code(
+                callback_host="localhost",
+                callback_port=5005,
+                twitch_app_client_id="mock",
+                redirect_url="http://localhost:5005/callback",
+                scope="user:read:chat user:read:email",
+            )
 
-    assert authorization == expected
+    assert authorization == expected_autho
+    assert expected_stdout in stdout.getvalue()
 
 
 def test_get_autho_code_unsuccess() -> None:
