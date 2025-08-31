@@ -126,7 +126,7 @@ def get_autho_code() -> Authorization | None:
     try:
         wait_for_auth(_AUTHO_TIMEOUT_SECONDS)
 
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # pragma: no cover
         print("\nUser cancelled operation.")
         return None
 

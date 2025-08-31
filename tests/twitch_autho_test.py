@@ -5,6 +5,7 @@ import time
 import contextlib
 from collections.abc import Generator
 
+import pytest
 import requests
 
 from eggbot_twitch import proto
@@ -27,6 +28,11 @@ def delayed_get_request(delay: int, url: str) -> Generator[None, None, None]:
         thread.join()
 
 
+@pytest.fixture(autouse=True)
+def shorten_autho_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(proto, "_AUTHO_TIMEOUT_SECONDS", 2)
+
+
 def test_get_autho_code_success() -> None:
     """Validate that autho code is successfully extracted from callback."""
     callback_url = "http://localhost:5005/callback?code=mock_code&scope=user:read:chat+user:read:email&state=123"
@@ -47,3 +53,10 @@ def test_get_autho_code_unsuccess() -> None:
         authorization = proto.get_autho_code()
 
     assert authorization == expected
+
+
+def test_get_autho_code_timeout() -> None:
+    """Validate that timeout is handled."""
+    authorization = proto.get_autho_code()
+
+    assert authorization is None
