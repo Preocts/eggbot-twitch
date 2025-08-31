@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 import responses
@@ -27,7 +28,14 @@ def valid_autho() -> Authorization:
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_success(valid_autho) -> None:
+def test_get_authentication_success(
+    valid_autho: Authorization,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Authentication calculates time to expires so we need a static, testable time.
+    static_time = 100.0
+    monkeypatch.setattr(time, "time", lambda: static_time)
+
     mock_reponse = json.dumps(MOCK_AUTHE_RESPONSE)
     params_match = {
         "client_id": "mock_id",
@@ -52,6 +60,12 @@ def test_get_authentication_success(valid_autho) -> None:
     )
 
     assert isinstance(authe, Authentication)
+    assert authe.access_token == "rfx2uswqe8l4g1mkagrvg5tv0ks3"
+    assert authe.expires_in == 14124
+    assert authe.expires_at == int(14124 + static_time)
+    assert authe.refresh_token == "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01"
+    assert authe.scope == ("user:email:read",)
+    assert authe.token_type == "bearer"
 
 
 @responses.activate(assert_all_requests_are_fired=True)

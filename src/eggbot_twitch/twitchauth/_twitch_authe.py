@@ -37,6 +37,6 @@ def get_authentication(
     response = requests.post(_AUTHO_TOKEN_URL, data=data)
 
     if response.ok:
-        return Authentication()
+        return Authentication.parse_response(response.json())
 
     return None
