@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import requests
+
 from .authentication import Authentication
 from .authorization import Authorization
+
+_AUTHO_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 
 
 def get_authentication(
@@ -22,4 +26,17 @@ def get_authentication(
         redirect_url: The registered Twitch app redirect url
         authorization: The resulting Authorization from a user auth request
     """
-    return Authentication()
+    data = {
+        "client_id": twitch_app_client_id,
+        "client_secret": twitch_app_client_secret,
+        "code": authorization.code,
+        "grant_type": "authorization_code",
+        "redirect_uri": redirect_url,
+    }
+
+    response = requests.post(_AUTHO_TOKEN_URL, data=data)
+
+    if response.ok:
+        return Authentication()
+
+    return None
