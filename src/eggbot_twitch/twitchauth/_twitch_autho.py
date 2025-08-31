@@ -113,12 +113,13 @@ def get_autho_code(
 
     catcher = RedirectCatcher(host=callback_host, port=callback_port)
     caught_url = ""
+    state = secrets.token_urlsafe(64)
 
     prompt_to_auth_url(
         client_id=twitch_app_client_id,
         redirect_uri=redirect_url,
         scope=scope,
-        state=secrets.token_urlsafe(64),
+        state=state,
     )
 
     start_auth_catcher_thread(catcher)
@@ -127,11 +128,11 @@ def get_autho_code(
         wait_for_auth(timeout)
 
     except KeyboardInterrupt:  # pragma: no cover
-        print("\nUser cancelled operation.")
+        print("\nError: User cancelled operation.")
         return None
 
     except TimeoutError:
-        print("\nTimed out while waiting for user to authorize app.")
+        print("\nError: Timed out while waiting for user to authorize app.")
         return None
 
     finally:
@@ -141,7 +142,15 @@ def get_autho_code(
 
         stop_auth_catcher_thread(catcher)
 
-    return Authorization.parse_url(caught_url)
+    autho = Authorization.parse_url(caught_url)
+
+    if autho.state != state:
+        print("\nError: State mismatch, cannot trust source.")
+        return None
+
+    print("\nSuccess: Authorization obtained.")
+
+    return autho
 
 
 if __name__ == "__main__":

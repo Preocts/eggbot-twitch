@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import io
+import secrets
 import threading
 import time
 from collections.abc import Generator
 
+import pytest
 import requests
 
 from eggbot_twitch.twitchauth import Authorization
@@ -27,6 +29,12 @@ def delayed_get_request(delay: int, url: str) -> Generator[None, None, None]:
 
     finally:
         thread.join()
+
+
+@pytest.fixture(autouse=True)
+def patch_secrets_token_urlsafe(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure the state code generated is testable and static."""
+    monkeypatch.setattr(secrets, "token_urlsafe", lambda x: "123")
 
 
 def test_get_autho_code_success() -> None:
@@ -67,6 +75,23 @@ def test_get_autho_code_unsuccess() -> None:
         )
 
     assert authorization == expected
+
+
+def test_get_autho_code_state_mismatch() -> None:
+    """Validate that state mismatch is handled."""
+    callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=abc"
+
+    with delayed_get_request(1, callback_url):
+        authorization = get_autho_code(
+            callback_host="localhost",
+            callback_port=5005,
+            twitch_app_client_id="mock",
+            redirect_url="http://localhost:5005/callback",
+            scope="user:read:chat user:read:email",
+            timeout=2,
+        )
+
+    assert authorization is None
 
 
 def test_get_autho_code_timeout() -> None:
