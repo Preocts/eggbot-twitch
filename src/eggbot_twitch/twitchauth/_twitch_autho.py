@@ -120,6 +120,7 @@ def get_autho_code(
     twitch_app_client_id: str,
     redirect_url: str,
     scope: str,
+    timeout: int,
 ) -> Authorization | None:
     """
     Request user authorization code.
@@ -137,6 +138,7 @@ def get_autho_code(
         twitch_app_client_id: The registered Twitch app id
         redirect_url: The registered redirect url of the Twitch app
         scope: Space delimited list of scope to request
+        timeout: After timeout expires, return failure (None)
     """
     global _caught_autho_request
 
@@ -153,7 +155,7 @@ def get_autho_code(
     start_auth_catcher_thread(catcher)
 
     try:
-        wait_for_auth(_AUTHO_TIMEOUT_SECONDS)
+        wait_for_auth(timeout)
 
     except KeyboardInterrupt:  # pragma: no cover
         print("\nUser cancelled operation.")
@@ -180,5 +182,6 @@ if __name__ == "__main__":
         twitch_app_client_id=TWITCH_APP_CLIENT_ID,
         redirect_url=REDIRECT_URL,
         scope=SCOPE,
+        timeout=_AUTHO_TIMEOUT_SECONDS,
     )
     raise SystemExit(int(autho is None))
