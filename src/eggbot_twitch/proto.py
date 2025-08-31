@@ -3,12 +3,23 @@
 from __future__ import annotations
 
 from .twitchauth import get_authorization
+from .twitchauth import get_authentication
+
+from eggviron import Eggviron, EnvFileLoader
 
 if __name__ == "__main__":
+    try:
+        environ = Eggviron().load(EnvFileLoader())
+
+    except FileNotFoundError:
+        print("Copy '.env_sample' to '.env' and fill in the needed secrets.")
+        raise SystemExit(1)
+
     # TODO: Move to config or .env file
     callback_host = "localhost"
     callback_port = 5005
     twitch_app_client_id = "es76t05hv4zarhowki8wypjfa7yqd0"
+    twitch_app_client_secret = environ["TWITCH_APP_CLIENT_SECRET"]
     redirect_url = "http://localhost:5005/callback"
     scope = "user:read:chat user:read:email"
 
@@ -28,5 +39,18 @@ if __name__ == "__main__":
         raise SystemExit(1)
 
     print("Authorization granted.")
+
+    authe = get_authentication(
+        twitch_app_client_id=twitch_app_client_id,
+        twitch_app_client_secret=twitch_app_client_secret,
+        redirect_url=redirect_url,
+        authorization=autho,
+    )
+
+    if authe is None:
+        raise SystemExit(1)
+
+    print("Authentication granted.")
+    print(authe)
 
     raise SystemExit(0)
