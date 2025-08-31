@@ -14,6 +14,11 @@ def valid_autho() -> Authorization:
 
 def test_get_authentication_success(valid_autho) -> None:
 
-    authe = get_authentication(valid_autho)
+    authe = get_authentication(
+        twitch_app_client_id="mock_id",
+        twitch_app_client_secret="mock_secret",
+        redirect_url="http://localhost:5005/callback",
+        authorization=valid_autho,
+    )
 
     assert isinstance(authe, Authentication)
