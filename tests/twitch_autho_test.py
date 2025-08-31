@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
-import contextlib
 from collections.abc import Generator
 
 import pytest
@@ -39,7 +39,13 @@ def test_get_autho_code_success() -> None:
     expected = proto.Authorization("123", "mock_code", "user:read:chat user:read:email", "", "")
 
     with delayed_get_request(1, callback_url):
-        authorization = proto.get_autho_code()
+        authorization = proto.get_autho_code(
+            callback_host="localhost",
+            callback_port=5005,
+            twitch_app_client_id="mock",
+            redirect_url="http://localhost:5005/callback",
+            scope="user:read:chat user:read:email",
+        )
 
     assert authorization == expected
 
@@ -50,13 +56,25 @@ def test_get_autho_code_unsuccess() -> None:
     expected = proto.Authorization("123", "", "", "access_denied", "The user denied you access")
 
     with delayed_get_request(1, callback_url):
-        authorization = proto.get_autho_code()
+        authorization = proto.get_autho_code(
+            callback_host="localhost",
+            callback_port=5005,
+            twitch_app_client_id="mock",
+            redirect_url="http://localhost:5005/callback",
+            scope="user:read:chat user:read:email",
+        )
 
     assert authorization == expected
 
 
 def test_get_autho_code_timeout() -> None:
     """Validate that timeout is handled."""
-    authorization = proto.get_autho_code()
+    authorization = proto.get_autho_code(
+        callback_host="localhost",
+        callback_port=5005,
+        twitch_app_client_id="mock",
+        redirect_url="http://localhost:5005/callback",
+        scope="user:read:chat user:read:email",
+    )
 
     assert authorization is None

@@ -11,19 +11,21 @@ from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
 
 # TODO: Move to config or .env file
-CLIENT_ID = "es76t05hv4zarhowki8wypjfa7yqd0"
+TWITCH_APP_CLIENT_ID = "es76t05hv4zarhowki8wypjfa7yqd0"
 SCOPE = "user:read:chat user:read:email"
 CALLBACK_HOST = "localhost"
 CALLBACK_PORT = 5005
-CALLBACK_URL = "http://localhost:5005/callback"
+REDIRECT_URL = "http://localhost:5005/callback"
 
 _AUTHO_TIMEOUT_SECONDS = 30
 
-caught_request: Request | None = None
+_caught_autho_request: Request | None = None
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Authorization:
+    """Represents the response of an authorizatoin response."""
+
     state: str
     code: str
     scope: str
@@ -48,17 +50,20 @@ class Authorization:
 class RedirectCatcher(threading.Thread):
 
     def __init__(self, host: str, port: int) -> None:
+        """Create a server within a thread."""
         super().__init__()
         self.server = make_server(host, port, self.application, threaded=True)
 
     def run(self) -> None:
+        """Run the server forever."""
         self.server.serve_forever()
 
     @staticmethod
     @Request.application
     def application(request: Request) -> Response:
-        global caught_request
-        caught_request = request
+        """Handle requests to the server."""
+        global _caught_autho_request
+        _caught_autho_request = request
 
         return Response("🥚")
 
@@ -71,6 +76,7 @@ def prompt_to_auth_url(
     *,
     force_verify: bool = True,
 ) -> None:
+    """Print a prompt to the stdout for the user to follow."""
     url = (
         "https://id.twitch.tv/oauth2/authorize"
         "?response_type=code"
@@ -99,7 +105,7 @@ def wait_for_auth(timeout_seconds: int) -> None:
     """Wait for the global 'caught_request' to be populated or until timeout expires."""
     timeout_at = time.time() + timeout_seconds
     counter = ""
-    while not caught_request:
+    while not _caught_autho_request:
         if counter != f"{int(timeout_at - time.time())}":
             counter = f"{int(timeout_at - time.time())}"
             print(f"\rTimeout in {counter:<10}", end="")
@@ -108,16 +114,39 @@ def wait_for_auth(timeout_seconds: int) -> None:
             raise TimeoutError()
 
 
-def get_autho_code() -> Authorization | None:
-    global caught_request
+def get_autho_code(
+    callback_host: str,
+    callback_port: int,
+    twitch_app_client_id: str,
+    redirect_url: str,
+    scope: str,
+) -> Authorization | None:
+    """
+    Request user authorization code.
 
-    catcher = RedirectCatcher(host=CALLBACK_HOST, port=CALLBACK_PORT)
+    This requires the user to open a generated link, accept the authorizatoin request,
+    and for the redirect to be captured by a local webserver.
+
+    A small werkzeug server is spun up in a thread during this operation.
+
+    The operation will timeout, failing, in _AUTHO_TIMEOUT_SECONDS.
+
+    Args:
+        callback_host: Host name of the HTTP service setup to catch redirect (usually 'localhost')
+        callback_port: Port of HTTP service setup to catch redirect
+        twitch_app_client_id: The registered Twitch app id
+        redirect_url: The registered redirect url of the Twitch app
+        scope: Space delimited list of scope to request
+    """
+    global _caught_autho_request
+
+    catcher = RedirectCatcher(host=callback_host, port=callback_port)
     caught_url = ""
 
     prompt_to_auth_url(
-        client_id=CLIENT_ID,
-        redirect_uri=CALLBACK_URL,
-        scope=SCOPE,
+        client_id=twitch_app_client_id,
+        redirect_uri=redirect_url,
+        scope=scope,
         state=secrets.token_urlsafe(64),
     )
 
@@ -135,9 +164,9 @@ def get_autho_code() -> Authorization | None:
         return None
 
     finally:
-        if caught_request is not None:
-            caught_url = caught_request.url
-            caught_request = None
+        if _caught_autho_request is not None:
+            caught_url = _caught_autho_request.url
+            _caught_autho_request = None
 
         stop_auth_catcher_thread(catcher)
 
@@ -145,4 +174,11 @@ def get_autho_code() -> Authorization | None:
 
 
 if __name__ == "__main__":
-    raise SystemExit(get_autho_code())
+    autho = get_autho_code(
+        callback_host=CALLBACK_HOST,
+        callback_port=CALLBACK_PORT,
+        twitch_app_client_id=TWITCH_APP_CLIENT_ID,
+        redirect_url=REDIRECT_URL,
+        scope=SCOPE,
+    )
+    raise SystemExit(int(autho is None))
