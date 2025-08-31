@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from .twitchauth import get_authorization
-from .twitchauth import get_authentication
+from eggviron import Eggviron
+from eggviron import EnvFileLoader
 
-from eggviron import Eggviron, EnvFileLoader
+from .twitchauth import get_authentication
+from .twitchauth import get_authorization
 
 if __name__ == "__main__":
     try:
