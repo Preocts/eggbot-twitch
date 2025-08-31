@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import secrets
 import threading
 import time
@@ -10,41 +9,11 @@ from werkzeug.serving import make_server
 from werkzeug.wrappers import Request
 from werkzeug.wrappers import Response
 
-# TODO: Move to config or .env file
-TWITCH_APP_CLIENT_ID = "es76t05hv4zarhowki8wypjfa7yqd0"
-SCOPE = "user:read:chat user:read:email"
-CALLBACK_HOST = "localhost"
-CALLBACK_PORT = 5005
-REDIRECT_URL = "http://localhost:5005/callback"
+from .authorization import Authorization
 
 _AUTHO_TIMEOUT_SECONDS = 30
 
 _caught_autho_request: Request | None = None
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class Authorization:
-    """Represents the response of an authorizatoin response."""
-
-    state: str = ""
-    code: str = ""
-    scope: str = ""
-    error: str = ""
-    error_description: str = ""
-
-    @classmethod
-    def parse_url(cls, url: str) -> Authorization:
-        """Create Authorization from callback url."""
-        parts = urllib.parse.urlparse(url)
-        query = urllib.parse.parse_qs(parts.query)
-
-        return cls(
-            state=query.get("state", [""])[0],
-            code=query.get("code", [""])[0],
-            scope=query.get("scope", [""])[0],
-            error=query.get("error", [""])[0],
-            error_description=query.get("error_description", [""])[0],
-        )
 
 
 class RedirectCatcher(threading.Thread):
@@ -120,7 +89,7 @@ def get_autho_code(
     twitch_app_client_id: str,
     redirect_url: str,
     scope: str,
-    timeout: int,
+    timeout: int = _AUTHO_TIMEOUT_SECONDS,
 ) -> Authorization | None:
     """
     Request user authorization code.
@@ -176,12 +145,18 @@ def get_autho_code(
 
 
 if __name__ == "__main__":
+    # TODO: Move to config or .env file
+    callback_host = "localhost"
+    callback_port = 5005
+    twitch_app_client_id = "es76t05hv4zarhowki8wypjfa7yqd0"
+    redirect_url = "http://localhost:5005/callback"
+    scope = "user:read:chat user:read:email"
+
     autho = get_autho_code(
-        callback_host=CALLBACK_HOST,
-        callback_port=CALLBACK_PORT,
-        twitch_app_client_id=TWITCH_APP_CLIENT_ID,
-        redirect_url=REDIRECT_URL,
-        scope=SCOPE,
-        timeout=_AUTHO_TIMEOUT_SECONDS,
+        callback_host=callback_host,
+        callback_port=callback_port,
+        twitch_app_client_id=twitch_app_client_id,
+        redirect_url=redirect_url,
+        scope=scope,
     )
     raise SystemExit(int(autho is None))

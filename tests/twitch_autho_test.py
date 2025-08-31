@@ -8,8 +8,8 @@ from collections.abc import Generator
 
 import requests
 
-from eggbot_twitch.twitchauth import get_autho_code
 from eggbot_twitch.twitchauth import Authorization
+from eggbot_twitch.twitchauth import get_autho_code
 
 
 @contextlib.contextmanager
