@@ -83,7 +83,7 @@ def wait_for_auth(timeout_seconds: int) -> None:
             raise TimeoutError()
 
 
-def get_autho_code(
+def get_authorization(
     callback_host: str,
     callback_port: int,
     twitch_app_client_id: str,

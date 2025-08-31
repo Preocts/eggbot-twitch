@@ -11,7 +11,7 @@ import pytest
 import requests
 
 from eggbot_twitch.twitchauth import Authorization
-from eggbot_twitch.twitchauth import get_autho_code
+from eggbot_twitch.twitchauth import get_authorization
 
 
 @contextlib.contextmanager
@@ -46,7 +46,7 @@ def test_get_autho_code_success() -> None:
 
     with contextlib.redirect_stdout(stdout):
         with delayed_get_request(1, callback_url):
-            authorization = get_autho_code(
+            authorization = get_authorization(
                 callback_host="localhost",
                 callback_port=5005,
                 twitch_app_client_id="mock",
@@ -65,7 +65,7 @@ def test_get_autho_code_unsuccess() -> None:
     expected = Authorization("123", "", "", "access_denied", "The user denied you access")
 
     with delayed_get_request(1, callback_url):
-        authorization = get_autho_code(
+        authorization = get_authorization(
             callback_host="localhost",
             callback_port=5005,
             twitch_app_client_id="mock",
@@ -82,7 +82,7 @@ def test_get_autho_code_state_mismatch() -> None:
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=abc"
 
     with delayed_get_request(1, callback_url):
-        authorization = get_autho_code(
+        authorization = get_authorization(
             callback_host="localhost",
             callback_port=5005,
             twitch_app_client_id="mock",
@@ -96,7 +96,7 @@ def test_get_autho_code_state_mismatch() -> None:
 
 def test_get_autho_code_timeout() -> None:
     """Validate that timeout is handled."""
-    authorization = get_autho_code(
+    authorization = get_authorization(
         callback_host="localhost",
         callback_port=5005,
         twitch_app_client_id="mock",

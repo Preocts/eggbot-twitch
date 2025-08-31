@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .twitchauth import get_autho_code
+from .twitchauth import get_authorization
 
 if __name__ == "__main__":
     # TODO: Move to config or .env file
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     redirect_url = "http://localhost:5005/callback"
     scope = "user:read:chat user:read:email"
 
-    autho = get_autho_code(
+    autho = get_authorization(
         callback_host=callback_host,
         callback_port=callback_port,
         twitch_app_client_id=twitch_app_client_id,
