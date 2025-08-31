@@ -140,6 +140,7 @@ wheels = [
 name = "eggbot-twitch"
 source = { editable = "." }
 dependencies = [
+    { name = "eggviron" },
     { name = "requests" },
     { name = "werkzeug" },
 ]
@@ -165,6 +166,7 @@ lint = [
 
 [package.metadata]
 requires-dist = [
+    { name = "eggviron", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "werkzeug", specifier = ">=3.1.3" },
 ]
@@ -186,6 +188,15 @@ lint = [
     { name = "flake8-builtins" },
     { name = "flake8-pep585" },
     { name = "mypy" },
+]
+
+[[package]]
+name = "eggviron"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/b7/95df584ddb46f0dc43aebf567f716109882ee4c8aa97bc5f7da134db62bb/eggviron-1.0.0.tar.gz", hash = "sha256:36ff9be59fb3e847de7453e7209b048da9a3266b4a5cbe93ae444550e77add1d", size = 86536, upload-time = "2025-08-25T02:52:43.755Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/c5/2ff48563a42ffb15349ccf3d9951678d706ef4c8e4de159437b22a5b11fb/eggviron-1.0.0-py3-none-any.whl", hash = "sha256:37fcc249689a38d07a8197174879eff26b46dd1529dcb8f234b9c857a576ab9c", size = 10876, upload-time = "2025-08-25T02:52:42.276Z" },
 ]
 
 [[package]]
