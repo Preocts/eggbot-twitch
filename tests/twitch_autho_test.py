@@ -30,18 +30,20 @@ def delayed_get_request(delay: int, url: str) -> Generator[None, None, None]:
 def test_get_autho_code_success() -> None:
     """Validate that autho code is successfully extracted from callback."""
     callback_url = "http://localhost:5005/callback?code=mock_code&scope=user:read:chat+user:read:email&state=123"
+    expected = proto.Authorization("123", "mock_code", "user:read:chat user:read:email", "", "")
 
     with delayed_get_request(1, callback_url):
-        exit_code = proto.get_autho_code()
+        authorization = proto.get_autho_code()
 
-    assert exit_code == "mock_code"
+    assert authorization == expected
 
 
 def test_get_autho_code_unsuccess() -> None:
     """Validate that errors are handled."""
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=123"
+    expected = proto.Authorization("123", "", "", "access_denied", "The user denied you access")
 
     with delayed_get_request(1, callback_url):
-        exit_code = proto.get_autho_code()
+        authorization = proto.get_autho_code()
 
-    assert exit_code == ""
+    assert authorization == expected

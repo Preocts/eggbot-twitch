@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import dataclasses
 import secrets
 import threading
 import time
@@ -20,6 +20,29 @@ CALLBACK_URL = "http://localhost:5005/callback"
 _AUTHO_TIMEOUT_SECONDS = 30
 
 caught_request: Request | None = None
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class Authorization:
+    state: str
+    code: str
+    scope: str
+    error: str
+    error_description: str
+
+    @classmethod
+    def parse_url(cls, url: str) -> Authorization:
+        """Create Authorization from callback url."""
+        parts = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parts.query)
+
+        return cls(
+            state=query.get("state", [""])[0],
+            code=query.get("code", [""])[0],
+            scope=query.get("scope", [""])[0],
+            error=query.get("error", [""])[0],
+            error_description=query.get("error_description", [""])[0],
+        )
 
 
 class RedirectCatcher(threading.Thread):
@@ -85,8 +108,12 @@ def wait_for_auth(timeout_seconds: int) -> None:
             raise TimeoutError()
 
 
-def get_autho_code() -> str | None:
+def get_autho_code() -> Authorization | None:
+    global caught_request
+
     catcher = RedirectCatcher(host=CALLBACK_HOST, port=CALLBACK_PORT)
+    caught_url = ""
+
     prompt_to_auth_url(
         client_id=CLIENT_ID,
         redirect_uri=CALLBACK_URL,
@@ -108,11 +135,13 @@ def get_autho_code() -> str | None:
         return None
 
     finally:
+        if caught_request is not None:
+            caught_url = caught_request.url
+            caught_request = None
+
         stop_auth_catcher_thread(catcher)
 
-    print(json.dumps(caught_request.__dict__, indent=2, default=str))
-
-    return None
+    return Authorization.parse_url(caught_url)
 
 
 if __name__ == "__main__":
