@@ -148,24 +148,6 @@ def get_autho_code(
         print("\nError: State mismatch, cannot trust source.")
         return None
 
-    print("\nSuccess: Authorization obtained.")
+    print("\n")
 
     return autho
-
-
-if __name__ == "__main__":
-    # TODO: Move to config or .env file
-    callback_host = "localhost"
-    callback_port = 5005
-    twitch_app_client_id = "es76t05hv4zarhowki8wypjfa7yqd0"
-    redirect_url = "http://localhost:5005/callback"
-    scope = "user:read:chat user:read:email"
-
-    autho = get_autho_code(
-        callback_host=callback_host,
-        callback_port=callback_port,
-        twitch_app_client_id=twitch_app_client_id,
-        redirect_url=redirect_url,
-        scope=scope,
-    )
-    raise SystemExit(int(autho is None))
