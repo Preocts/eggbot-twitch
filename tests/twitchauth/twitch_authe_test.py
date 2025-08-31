@@ -28,6 +28,11 @@ def valid_autho() -> Authorization:
     return Authorization("123", "mock_code", "user:email:read")
 
 
+@pytest.fixture
+def invalid_autho() -> Authorization:
+    return Authorization("123", "", "", "error", "user denied")
+
+
 @responses.activate(assert_all_requests_are_fired=True)
 def test_get_authentication_success(
     valid_autho: Authorization,
@@ -70,7 +75,7 @@ def test_get_authentication_success(
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_failure(valid_autho) -> None:
+def test_get_authentication_failure(valid_autho: Authorization) -> None:
     params_match = {
         "client_id": "mock_id",
         "client_secret": "mock_secret",
@@ -98,7 +103,7 @@ def test_get_authentication_failure(valid_autho) -> None:
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_invalid_response(valid_autho) -> None:
+def test_get_authentication_invalid_response(valid_autho: Authorization) -> None:
     mock_resp = copy.deepcopy(MOCK_AUTHE_RESPONSE)
     del mock_resp["refresh_token"]
 
@@ -113,6 +118,25 @@ def test_get_authentication_invalid_response(valid_autho) -> None:
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
         authorization=valid_autho,
+    )
+
+    assert authe is None
+
+
+@responses.activate
+def test_get_authentication_invalid_authorization(invalid_autho) -> None:
+
+    responses.add(
+        method="POST",
+        url="https://id.twitch.tv/oauth2/token",
+        body=AssertionError("requests.post should NOT have been called."),
+    )
+
+    authe = get_authentication(
+        twitch_app_client_id="mock_id",
+        twitch_app_client_secret="mock_secret",
+        redirect_url="http://localhost:5005/callback",
+        authorization=invalid_autho,
     )
 
     assert authe is None

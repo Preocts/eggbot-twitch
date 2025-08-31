@@ -26,6 +26,9 @@ def get_authentication(
         redirect_url: The registered Twitch app redirect url
         authorization: The resulting Authorization from a user auth request
     """
+    if authorization.error:
+        return None
+
     data = {
         "client_id": twitch_app_client_id,
         "client_secret": twitch_app_client_secret,
