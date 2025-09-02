@@ -5,8 +5,8 @@ from __future__ import annotations
 from eggviron import Eggviron
 from eggviron import EnvFileLoader
 
-from .twitchauth import get_authentication
-from .twitchauth import get_authorization
+from .twitchauth import get_user_authorization
+from .twitchauth import get_user_grant
 
 if __name__ == "__main__":
     try:
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     redirect_url = "http://localhost:5005/callback"
     scope = "user:read:chat user:read:email"
 
-    autho = get_authorization(
+    autho = get_user_grant(
         callback_host=callback_host,
         callback_port=callback_port,
         twitch_app_client_id=twitch_app_client_id,
@@ -41,11 +41,11 @@ if __name__ == "__main__":
 
     print("Authorization granted.")
 
-    authe = get_authentication(
+    authe = get_user_authorization(
         twitch_app_client_id=twitch_app_client_id,
         twitch_app_client_secret=twitch_app_client_secret,
         redirect_url=redirect_url,
-        authorization=autho,
+        userauthgrant=autho,
     )
 
     if authe is None:

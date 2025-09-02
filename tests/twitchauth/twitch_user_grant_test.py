@@ -10,8 +10,8 @@ from collections.abc import Generator
 import pytest
 import requests
 
-from eggbot_twitch.twitchauth import Authorization
-from eggbot_twitch.twitchauth import get_authorization
+from eggbot_twitch.twitchauth import UserAuthGrant
+from eggbot_twitch.twitchauth import get_user_grant
 
 
 @contextlib.contextmanager
@@ -37,16 +37,16 @@ def patch_secrets_token_urlsafe(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(secrets, "token_urlsafe", lambda x: "123")
 
 
-def test_get_autho_code_success() -> None:
+def test_get_user_grant_success() -> None:
     """Validate that autho code is successfully extracted from callback."""
     callback_url = "http://localhost:5005/callback?code=mock_code&scope=user:read:chat+user:read:email&state=123"
-    expected_autho = Authorization("123", "mock_code", "user:read:chat user:read:email")
+    expected_autho = UserAuthGrant("123", "mock_code", "user:read:chat user:read:email")
     expected_stdout = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=mock&redirect_uri=http://localhost:5005/callback&scope=user%3Aread%3Achat%20user%3Aread%3Aemail&state="
     stdout = io.StringIO()
 
     with contextlib.redirect_stdout(stdout):
         with delayed_get_request(1, callback_url):
-            authorization = get_authorization(
+            authorization = get_user_grant(
                 callback_host="localhost",
                 callback_port=5005,
                 twitch_app_client_id="mock",
@@ -59,13 +59,13 @@ def test_get_autho_code_success() -> None:
     assert expected_stdout in stdout.getvalue()
 
 
-def test_get_autho_code_unsuccess() -> None:
+def test_get_user_grant_unsuccess() -> None:
     """Validate that errors are handled."""
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=123"
-    expected = Authorization("123", "", "", "access_denied", "The user denied you access")
+    expected = UserAuthGrant("123", "", "", "access_denied", "The user denied you access")
 
     with delayed_get_request(1, callback_url):
-        authorization = get_authorization(
+        authorization = get_user_grant(
             callback_host="localhost",
             callback_port=5005,
             twitch_app_client_id="mock",
@@ -77,12 +77,12 @@ def test_get_autho_code_unsuccess() -> None:
     assert authorization == expected
 
 
-def test_get_autho_code_state_mismatch() -> None:
+def test_get_user_grant_state_mismatch() -> None:
     """Validate that state mismatch is handled."""
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=abc"
 
     with delayed_get_request(1, callback_url):
-        authorization = get_authorization(
+        authorization = get_user_grant(
             callback_host="localhost",
             callback_port=5005,
             twitch_app_client_id="mock",
@@ -94,9 +94,9 @@ def test_get_autho_code_state_mismatch() -> None:
     assert authorization is None
 
 
-def test_get_autho_code_timeout() -> None:
+def test_get_user_grant_timeout() -> None:
     """Validate that timeout is handled."""
-    authorization = get_authorization(
+    authorization = get_user_grant(
         callback_host="localhost",
         callback_port=5005,
         twitch_app_client_id="mock",

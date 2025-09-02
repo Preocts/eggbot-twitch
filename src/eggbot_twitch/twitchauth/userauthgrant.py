@@ -5,8 +5,8 @@ import urllib.parse
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class Authorization:
-    """Represent the response of an authorizatoin request."""
+class UserAuthGrant:
+    """Represent the response of a user authorization grant request."""
 
     state: str = ""
     code: str = ""
@@ -15,7 +15,7 @@ class Authorization:
     error_description: str = ""
 
     @classmethod
-    def parse_url(cls, url: str) -> Authorization:
+    def parse_url(cls, url: str) -> UserAuthGrant:
         """Create Authorization from callback url."""
         parts = urllib.parse.urlparse(url)
         query = urllib.parse.parse_qs(parts.query)

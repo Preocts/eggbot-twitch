@@ -8,9 +8,9 @@ import pytest
 import responses
 import responses.matchers
 
-from eggbot_twitch.twitchauth import Authentication
-from eggbot_twitch.twitchauth import Authorization
-from eggbot_twitch.twitchauth import get_authentication
+from eggbot_twitch.twitchauth import UserAuth
+from eggbot_twitch.twitchauth import UserAuthGrant
+from eggbot_twitch.twitchauth import get_user_authorization
 
 MOCK_AUTHE_RESPONSE = {
     "access_token": "rfx2uswqe8l4g1mkagrvg5tv0ks3",
@@ -24,18 +24,18 @@ MOCK_AUTHE_RESPONSE = {
 
 
 @pytest.fixture
-def valid_autho() -> Authorization:
-    return Authorization("123", "mock_code", "user:email:read")
+def valid_autho() -> UserAuthGrant:
+    return UserAuthGrant("123", "mock_code", "user:email:read")
 
 
 @pytest.fixture
-def invalid_autho() -> Authorization:
-    return Authorization("123", "", "", "error", "user denied")
+def invalid_autho() -> UserAuthGrant:
+    return UserAuthGrant("123", "", "", "error", "user denied")
 
 
 @responses.activate(assert_all_requests_are_fired=True)
 def test_get_authentication_success(
-    valid_autho: Authorization,
+    valid_autho: UserAuthGrant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Authentication calculates time to expires so we need a static, testable time.
@@ -58,14 +58,14 @@ def test_get_authentication_success(
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    authe = get_authentication(
+    authe = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        authorization=valid_autho,
+        userauthgrant=valid_autho,
     )
 
-    assert isinstance(authe, Authentication)
+    assert isinstance(authe, UserAuth)
     assert authe.access_token == "rfx2uswqe8l4g1mkagrvg5tv0ks3"
     assert authe.expires_in == 14124
     assert authe.expires_at == int(14124 + static_time)
@@ -75,7 +75,7 @@ def test_get_authentication_success(
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_failure(valid_autho: Authorization) -> None:
+def test_get_authentication_failure(valid_autho: UserAuthGrant) -> None:
     params_match = {
         "client_id": "mock_id",
         "client_secret": "mock_secret",
@@ -92,18 +92,18 @@ def test_get_authentication_failure(valid_autho: Authorization) -> None:
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    authe = get_authentication(
+    authe = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        authorization=valid_autho,
+        userauthgrant=valid_autho,
     )
 
     assert authe is None
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_invalid_response(valid_autho: Authorization) -> None:
+def test_get_authentication_invalid_response(valid_autho: UserAuthGrant) -> None:
     mock_resp = copy.deepcopy(MOCK_AUTHE_RESPONSE)
     del mock_resp["refresh_token"]
 
@@ -113,11 +113,11 @@ def test_get_authentication_invalid_response(valid_autho: Authorization) -> None
         body=json.dumps(mock_resp),
     )
 
-    authe = get_authentication(
+    authe = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        authorization=valid_autho,
+        userauthgrant=valid_autho,
     )
 
     assert authe is None
@@ -132,11 +132,11 @@ def test_get_authentication_invalid_authorization(invalid_autho) -> None:
         body=AssertionError("requests.post should NOT have been called."),
     )
 
-    authe = get_authentication(
+    authe = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        authorization=invalid_autho,
+        userauthgrant=invalid_autho,
     )
 
     assert authe is None

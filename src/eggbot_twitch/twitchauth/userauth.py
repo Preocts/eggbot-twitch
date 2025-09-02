@@ -6,8 +6,8 @@ from typing import Any
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class Authentication:
-    """Represent the response of an authentication request"""
+class UserAuth:
+    """Represent the response of an authorization request"""
 
     access_token: str
     expires_in: int
@@ -17,8 +17,8 @@ class Authentication:
     token_type: str
 
     @classmethod
-    def parse_response(cls, response: dict[str, Any]) -> Authentication:
-        """Build from authentication response from TwitchTV."""
+    def parse_response(cls, response: dict[str, Any]) -> UserAuth:
+        """Build from authorization response from TwitchTV."""
         expires_at = int(response["expires_in"] + time.time())
         return cls(
             access_token=response["access_token"],
