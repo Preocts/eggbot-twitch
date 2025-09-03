@@ -70,20 +70,20 @@ def test_get_user_authorization_success(
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    authe = get_user_authorization(
+    userauth = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
         userauthgrant=valid_grant,
     )
 
-    assert isinstance(authe, UserAuth)
-    assert authe.access_token == "mock_access_token"
-    assert authe.expires_in == 14124
-    assert authe.expires_at == int(14124 + static_time)
-    assert authe.refresh_token == "mock_refresh_token"
-    assert authe.scope == ("user:email:read",)
-    assert authe.token_type == "bearer"
+    assert isinstance(userauth, UserAuth)
+    assert userauth.access_token == "mock_access_token"
+    assert userauth.expires_in == 14124
+    assert userauth.expires_at == int(14124 + static_time)
+    assert userauth.refresh_token == "mock_refresh_token"
+    assert userauth.scope == ("user:email:read",)
+    assert userauth.token_type == "bearer"
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -104,14 +104,14 @@ def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    authe = get_user_authorization(
+    userauth = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
         userauthgrant=valid_grant,
     )
 
-    assert authe is None
+    assert userauth is None
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -125,14 +125,14 @@ def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> 
         body=json.dumps(mock_resp),
     )
 
-    authe = get_user_authorization(
+    userauth = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
         userauthgrant=valid_grant,
     )
 
-    assert authe is None
+    assert userauth is None
 
 
 @responses.activate
@@ -144,14 +144,14 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
         body=AssertionError("requests.post should NOT have been called."),
     )
 
-    authe = get_user_authorization(
+    userauth = get_user_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
         userauthgrant=invalid_grant,
     )
 
-    assert authe is None
+    assert userauth is None
 
 
 def test_load_user_authorization_success_filename(userauthfilename: str) -> None:
