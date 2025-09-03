@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import os
+
 import requests
 
 from .userauth import UserAuth
 from .userauthgrant import UserAuthGrant
 
 _AUTHO_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
+_DEFAULT_USER_AUTH_FILE = "user_auth.json"
 
 
 def get_user_authorization(
@@ -47,3 +50,29 @@ def get_user_authorization(
 
     except KeyError:
         return None
+
+
+def load_user_authorization(
+    user_auth_file: str | None = None,
+) -> UserAuth | None:
+    """
+    Attempt to load a UserAuth from file.
+
+    Args:
+        user_auth_file: Attempts to load previous user authorization from a file. The
+            default file is _DEFAULT_USER_AUTH_FILE. Override this location by providing
+            a keyword argument or setting the 'EGGBOT_TWITCH_USER_AUTH_FILE'
+            environment variable.
+    """
+    user_auth_file = (
+        user_auth_file
+        if user_auth_file is not None
+        else os.getenv("EGGBOT_TWITCH_USER_AUTH_FILE", _DEFAULT_USER_AUTH_FILE)
+    )
+
+    if not os.path.exists(user_auth_file):
+        print(user_auth_file)
+        return None
+
+    with open(user_auth_file, "rb") as infile:
+        return UserAuth.load(infile)

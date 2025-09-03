@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import copy
 import json
+import tempfile
 import time
+from collections.abc import Generator
 
 import pytest
 import responses
@@ -11,11 +13,12 @@ import responses.matchers
 from eggbot_twitch.twitchauth import UserAuth
 from eggbot_twitch.twitchauth import UserAuthGrant
 from eggbot_twitch.twitchauth import get_user_authorization
+from eggbot_twitch.twitchauth import load_user_authorization
 
 MOCK_AUTHE_RESPONSE = {
-    "access_token": "rfx2uswqe8l4g1mkagrvg5tv0ks3",
+    "access_token": "mock_access_token",
     "expires_in": 14124,
-    "refresh_token": "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01",
+    "refresh_token": "mock_refresh_token",
     "scope": [
         "user:email:read",
     ],
@@ -31,6 +34,15 @@ def valid_grant() -> UserAuthGrant:
 @pytest.fixture
 def invalid_grant() -> UserAuthGrant:
     return UserAuthGrant("123", "", "", "error", "user denied")
+
+
+@pytest.fixture
+def userauthfilename() -> Generator[str, None, None]:
+    """Create a tempfile with a user auth saved in it, yield the filename."""
+    with tempfile.NamedTemporaryFile() as authfile:
+        authfile.write(json.dumps(MOCK_AUTHE_RESPONSE).encode())
+        authfile.seek(0)
+        yield authfile.name
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -140,3 +152,29 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
     )
 
     assert authe is None
+
+
+def test_load_user_authorization_success_filename(userauthfilename: str) -> None:
+    """Load a generated file by provided filename"""
+
+    userauth = load_user_authorization(userauthfilename)
+
+    assert isinstance(userauth, UserAuth)
+
+
+def test_load_user_authorization_success_environ(
+    userauthfilename: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Load a generated file by provided environment variable"""
+    monkeypatch.setenv("EGGBOT_TWITCH_USER_AUTH_FILE", userauthfilename)
+
+    userauth = load_user_authorization()
+
+    assert isinstance(userauth, UserAuth)
+
+
+def test_load_user_authorization_missing_file() -> None:
+
+    userauth = load_user_authorization("/path/not/exists")
+
+    assert userauth is None
