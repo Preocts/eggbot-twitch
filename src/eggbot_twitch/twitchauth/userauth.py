@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from _typeshed import SupportsRead
+    from _typeshed import SupportsWrite
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -43,3 +44,7 @@ class UserAuth:
     def load(cls, fp: SupportsRead[bytes]) -> UserAuth:
         """Load UserAuth from a file. Must be in JSON format."""
         return cls.parse_response(json.load(fp))
+
+    def dump(self, fp: SupportsWrite[bytes]) -> None:
+        """Save UserAuth to a file in JSON format."""
+        fp.write(json.dumps(dataclasses.asdict(self)).encode())

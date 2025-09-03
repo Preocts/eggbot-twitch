@@ -14,8 +14,6 @@ MOCK_USER_AUTH = {
     "token_type": "bearer",
 }
 
-json.load
-
 
 def test_load_valid_file() -> None:
     with tempfile.TemporaryFile() as authfile:
@@ -31,3 +29,14 @@ def test_load_valid_file() -> None:
     assert userauth.refresh_token == "mock_refresh_token"
     assert userauth.scope == ("user:read:chat", "user:read:email")
     assert userauth.token_type == "bearer"
+
+
+def test_dump() -> None:
+    auth = UserAuth.parse_response(MOCK_USER_AUTH)
+    with tempfile.TemporaryFile() as authfile:
+        auth.dump(authfile)
+        authfile.seek(0)
+
+        results = authfile.read()
+
+    assert json.loads(results.decode()) == MOCK_USER_AUTH
