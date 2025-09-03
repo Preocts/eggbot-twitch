@@ -24,18 +24,18 @@ MOCK_AUTHE_RESPONSE = {
 
 
 @pytest.fixture
-def valid_autho() -> UserAuthGrant:
+def valid_grant() -> UserAuthGrant:
     return UserAuthGrant("123", "mock_code", "user:email:read")
 
 
 @pytest.fixture
-def invalid_autho() -> UserAuthGrant:
+def invalid_grant() -> UserAuthGrant:
     return UserAuthGrant("123", "", "", "error", "user denied")
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_success(
-    valid_autho: UserAuthGrant,
+def test_get_user_authorization_success(
+    valid_grant: UserAuthGrant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Authentication calculates time to expires so we need a static, testable time.
@@ -62,20 +62,20 @@ def test_get_authentication_success(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        userauthgrant=valid_autho,
+        userauthgrant=valid_grant,
     )
 
     assert isinstance(authe, UserAuth)
-    assert authe.access_token == "rfx2uswqe8l4g1mkagrvg5tv0ks3"
+    assert authe.access_token == "mock_access_token"
     assert authe.expires_in == 14124
     assert authe.expires_at == int(14124 + static_time)
-    assert authe.refresh_token == "5b93chm6hdve3mycz05zfzatkfdenfspp1h1ar2xxdalen01"
+    assert authe.refresh_token == "mock_refresh_token"
     assert authe.scope == ("user:email:read",)
     assert authe.token_type == "bearer"
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_failure(valid_autho: UserAuthGrant) -> None:
+def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
     params_match = {
         "client_id": "mock_id",
         "client_secret": "mock_secret",
@@ -96,14 +96,14 @@ def test_get_authentication_failure(valid_autho: UserAuthGrant) -> None:
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        userauthgrant=valid_autho,
+        userauthgrant=valid_grant,
     )
 
     assert authe is None
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_authentication_invalid_response(valid_autho: UserAuthGrant) -> None:
+def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> None:
     mock_resp = copy.deepcopy(MOCK_AUTHE_RESPONSE)
     del mock_resp["refresh_token"]
 
@@ -117,14 +117,14 @@ def test_get_authentication_invalid_response(valid_autho: UserAuthGrant) -> None
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        userauthgrant=valid_autho,
+        userauthgrant=valid_grant,
     )
 
     assert authe is None
 
 
 @responses.activate
-def test_get_authentication_invalid_authorization(invalid_autho) -> None:
+def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
 
     responses.add(
         method="POST",
@@ -136,7 +136,7 @@ def test_get_authentication_invalid_authorization(invalid_autho) -> None:
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         redirect_url="http://localhost:5005/callback",
-        userauthgrant=invalid_autho,
+        userauthgrant=invalid_grant,
     )
 
     assert authe is None
