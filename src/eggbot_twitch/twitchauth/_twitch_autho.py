@@ -97,7 +97,5 @@ def save_user_authorization(
             location by providing a keyword argument or setting the
             'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
     """
-    user_auth_file = _resolve_user_auth_file(user_auth_file)
-
-    with open(user_auth_file, "wb") as outfile:
+    with open(_resolve_user_auth_file(user_auth_file), "wb") as outfile:
         user_authorization.dump(outfile)
