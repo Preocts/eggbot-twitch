@@ -52,6 +52,15 @@ def get_user_authorization(
         return None
 
 
+def _resolve_user_auth_file(user_auth_file: str | None) -> str:
+    """Resovles user_auth_file to provided string, $EGGBOT_TWITCH_USER_AUTH_FILE, or _DEFAULT_USER_AUTH_FILE."""
+    return (
+        user_auth_file
+        if user_auth_file is not None
+        else os.getenv("EGGBOT_TWITCH_USER_AUTH_FILE", _DEFAULT_USER_AUTH_FILE)
+    )
+
+
 def load_user_authorization(
     user_auth_file: str | None = None,
 ) -> UserAuth | None:
@@ -59,16 +68,11 @@ def load_user_authorization(
     Attempt to load a UserAuth from file.
 
     Args:
-        user_auth_file: Attempts to load previous user authorization from a file. The
-            default file is _DEFAULT_USER_AUTH_FILE. Override this location by providing
-            a keyword argument or setting the 'EGGBOT_TWITCH_USER_AUTH_FILE'
-            environment variable.
+        user_auth_file: The default file is _DEFAULT_USER_AUTH_FILE. Override this
+            location by providing a keyword argument or setting the
+            'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
     """
-    user_auth_file = (
-        user_auth_file
-        if user_auth_file is not None
-        else os.getenv("EGGBOT_TWITCH_USER_AUTH_FILE", _DEFAULT_USER_AUTH_FILE)
-    )
+    user_auth_file = _resolve_user_auth_file(user_auth_file)
 
     if not os.path.exists(user_auth_file):
         print(user_auth_file)
@@ -76,3 +80,22 @@ def load_user_authorization(
 
     with open(user_auth_file, "rb") as infile:
         return UserAuth.load(infile)
+
+
+def save_user_authorization(
+    user_authorization: UserAuth,
+    user_auth_file: str | None = None,
+) -> None:
+    """
+    Save a UserAuth to file.
+
+    Args:
+        user_authorization: The UserAuth object to save
+        user_auth_file: The default file is _DEFAULT_USER_AUTH_FILE. Override this
+            location by providing a keyword argument or setting the
+            'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
+    """
+    user_auth_file = _resolve_user_auth_file(user_auth_file)
+
+    with open(user_auth_file, "wb") as outfile:
+        user_authorization.dump(outfile)

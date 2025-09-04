@@ -14,6 +14,7 @@ from eggbot_twitch.twitchauth import UserAuth
 from eggbot_twitch.twitchauth import UserAuthGrant
 from eggbot_twitch.twitchauth import get_user_authorization
 from eggbot_twitch.twitchauth import load_user_authorization
+from eggbot_twitch.twitchauth import save_user_authorization
 
 MOCK_AUTHE_RESPONSE = {
     "access_token": "mock_access_token",
@@ -174,7 +175,21 @@ def test_load_user_authorization_success_environ(
 
 
 def test_load_user_authorization_missing_file() -> None:
-
+    """Handle when authorization file does not exist"""
     userauth = load_user_authorization("/path/not/exists")
 
     assert userauth is None
+
+
+def test_save_user_authorization_success(userauthfilename: str) -> None:
+    """Save user authorization to a file."""
+    expected = copy.deepcopy(MOCK_AUTHE_RESPONSE)
+    expected["access_token"] = "newmocktoken"
+    userauth = UserAuth.parse_response(expected)
+
+    save_user_authorization(userauth, userauthfilename)
+
+    with open(userauthfilename, "rb") as infile:
+        result = json.load(infile)
+
+    assert result["access_token"] == "newmocktoken"
