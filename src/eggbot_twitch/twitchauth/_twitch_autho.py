@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 
 import requests
@@ -72,14 +73,15 @@ def load_user_authorization(
             location by providing a keyword argument or setting the
             'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
     """
-    user_auth_file = _resolve_user_auth_file(user_auth_file)
+    try:
+        with open(_resolve_user_auth_file(user_auth_file), "rb") as infile:
+            return UserAuth.load(infile)
 
-    if not os.path.exists(user_auth_file):
-        print(user_auth_file)
+    except FileNotFoundError:
         return None
 
-    with open(user_auth_file, "rb") as infile:
-        return UserAuth.load(infile)
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 def save_user_authorization(

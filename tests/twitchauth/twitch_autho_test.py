@@ -164,7 +164,8 @@ def test_load_user_authorization_success_filename(userauthfilename: str) -> None
 
 
 def test_load_user_authorization_success_environ(
-    userauthfilename: str, monkeypatch: pytest.MonkeyPatch
+    userauthfilename: str,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Load a generated file by provided environment variable"""
     monkeypatch.setenv("EGGBOT_TWITCH_USER_AUTH_FILE", userauthfilename)
@@ -172,6 +173,13 @@ def test_load_user_authorization_success_environ(
     userauth = load_user_authorization()
 
     assert isinstance(userauth, UserAuth)
+
+
+def test_load_user_authorization_invalid_file_format() -> None:
+    """Handle invalid file formats and expect None as a result."""
+    userauth = load_user_authorization(".gitignore")
+
+    assert userauth is None
 
 
 def test_load_user_authorization_missing_file() -> None:
