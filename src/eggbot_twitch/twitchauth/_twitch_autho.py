@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 
 import requests
@@ -10,6 +11,8 @@ from .userauthgrant import UserAuthGrant
 
 _AUTHO_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 _DEFAULT_USER_AUTH_FILE = "user_auth.json"
+
+logger = logging.getLogger("twitchauth")
 
 
 def get_user_authorization(
@@ -44,12 +47,18 @@ def get_user_authorization(
     response = requests.post(_AUTHO_TOKEN_URL, data=data)
 
     if not response.ok:
+        logger.error(
+            "Request for authorizatoin token failed: (%d) %s",
+            response.status_code,
+            response.text,
+        )
         return None
 
     try:
         return UserAuth.parse_response(response.json())
 
     except KeyError:
+        logger.error("Unable to parse unexpected response format.")
         return None
 
 
@@ -73,8 +82,12 @@ def load_user_authorization(
             location by providing a keyword argument or setting the
             'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
     """
+    user_auth_file = _resolve_user_auth_file(user_auth_file)
+
+    logger.debug("Attempting to load authorization from '%s'", user_auth_file)
+
     try:
-        with open(_resolve_user_auth_file(user_auth_file), "rb") as infile:
+        with open(user_auth_file, "rb") as infile:
             return UserAuth.load(infile)
 
     except FileNotFoundError:
@@ -97,5 +110,9 @@ def save_user_authorization(
             location by providing a keyword argument or setting the
             'EGGBOT_TWITCH_USER_AUTH_FILE' environment variable.
     """
+    user_auth_file = _resolve_user_auth_file(user_auth_file)
+
+    logger.debug("Saving authorization to '%s'", user_auth_file)
+
     with open(_resolve_user_auth_file(user_auth_file), "wb") as outfile:
         user_authorization.dump(outfile)
