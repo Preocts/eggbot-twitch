@@ -106,3 +106,19 @@ def test_get_user_grant_timeout() -> None:
     )
 
     assert authorization is None
+
+
+def test_get_user_grant_timeout_with_unexpect_response() -> None:
+    """Validate that timeout is handled."""
+    callback_url = "http://localhost:5005/somethingelse"
+    with delayed_get_request(1, callback_url):
+        authorization = get_user_grant(
+            callback_host="localhost",
+            callback_port=5005,
+            twitch_app_client_id="mock",
+            redirect_url="http://localhost:5005/callback",
+            scope="user:read:chat user:read:email",
+            timeout=2,
+        )
+
+    assert authorization is None
