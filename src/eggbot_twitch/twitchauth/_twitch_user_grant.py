@@ -4,6 +4,7 @@ import secrets
 import threading
 import time
 import urllib.parse
+import logging
 
 from werkzeug.serving import make_server
 from werkzeug.wrappers import Request
@@ -13,6 +14,7 @@ from .userauthgrant import UserAuthGrant
 
 _AUTHO_TIMEOUT_SECONDS = 30
 
+logger = logging.getLogger("twitchauth")
 _caught_autho_request: Request | None = None
 
 
@@ -61,13 +63,16 @@ def prompt_to_auth_url(
 
 def start_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
     """Start the thread containing the werkzeug webserver."""
+    logger.info("Starting emphemeral webserver to capture auth request.")
     auth_catcher.start()
 
 
 def stop_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
     """Stop the thread containing the wekzeug webserver, block until closed."""
+    logger.info("Stopping webserver...")
     auth_catcher.server.shutdown()
     auth_catcher.join()
+    logger.info("Webserver stopped.")
 
 
 def wait_for_auth(timeout_seconds: int) -> None:
@@ -128,11 +133,11 @@ def get_user_grant(
         wait_for_auth(timeout)
 
     except KeyboardInterrupt:  # pragma: no cover
-        print("\nError: User cancelled operation.")
+        logger.error("User cancelled operation.")
         return None
 
     except TimeoutError:
-        print("\nError: Timed out while waiting for user to authorize app.")
+        logger.error("Timed out while waiting for user to authorize app.")
         return None
 
     finally:
@@ -145,7 +150,7 @@ def get_user_grant(
     autho = UserAuthGrant.parse_url(caught_url)
 
     if autho.state != state:
-        print("\nError: State mismatch, cannot trust source.")
+        logger.error("State mismatch, cannot trust source.")
         return None
 
     print("\n")
