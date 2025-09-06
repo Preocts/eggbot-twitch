@@ -24,7 +24,7 @@ if __name__ == "__main__":
     redirect_url = "http://localhost:5005/callback"
     scope = "user:read:chat user:read:email"
 
-    autho = get_user_grant(
+    user_greant = get_user_grant(
         callback_host=callback_host,
         callback_port=callback_port,
         twitch_app_client_id=twitch_app_client_id,
@@ -32,25 +32,44 @@ if __name__ == "__main__":
         scope=scope,
     )
 
-    if autho is None:
+    if user_greant is None:
         raise SystemExit(1)
 
-    elif autho.error:
-        print(f"Error: {autho.error} - {autho.error_description}")
+    elif user_greant.error:
+        print(f"Error: {user_greant.error} - {user_greant.error_description}")
         raise SystemExit(1)
 
     print("Authorization granted.")
 
-    authe = get_authorization(
+    user_auth = get_authorization(
         twitch_app_client_id=twitch_app_client_id,
         twitch_app_client_secret=twitch_app_client_secret,
-        user_auth=autho,
+        user_auth=user_greant,
     )
 
-    if authe is None:
+    refresh_auth = get_authorization(
+        twitch_app_client_id=twitch_app_client_id,
+        twitch_app_client_secret=twitch_app_client_secret,
+        user_auth=user_auth,
+    )
+
+    client_auth = get_authorization(
+        twitch_app_client_id=twitch_app_client_id,
+        twitch_app_client_secret=twitch_app_client_secret,
+    )
+
+    if user_auth is None:
+        print("Failed to get User Auth")
+        raise SystemExit(1)
+
+    if refresh_auth is None:
+        print("Failed to get Refresh Auth")
+        raise SystemExit(1)
+
+    if client_auth is None:
+        print("Failed to get Client Auth")
         raise SystemExit(1)
 
     print("Authentication granted.")
-    print(authe)
 
     raise SystemExit(0)
