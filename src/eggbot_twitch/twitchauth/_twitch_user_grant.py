@@ -78,27 +78,18 @@ def stop_auth_catcher_thread(auth_catcher: RedirectCatcher) -> None:
 def wait_for_auth_response(timeout_seconds: int) -> UserAuthGrant:
     """Wait for a valid auth resopnse, return the url unless timeout expires."""
     timeout_at = time.time() + timeout_seconds
-    try:
-        while "We still have time.":
-            counter = f"{int(timeout_at - time.time())}"
-            print(f"\rTimeout in {counter:<10}", end="")
+    while time.time() <= timeout_at:
+        try:
+            request = _caught_autho_requets.get(timeout=0.1)
 
-            try:
-                request = _caught_autho_requets.get(timeout=0.1)
-                grant = UserAuthGrant.parse_url(request.url)
-                if grant.error or grant.code:
-                    return grant
-                else:
-                    logger.warning("Invalid request URL captured, skipping.")
+        except queue.Empty:
+            continue
 
-            except queue.Empty:
-                pass
+        grant = UserAuthGrant.parse_url(request.url)
+        if grant.error or grant.code:
+            return grant
 
-            if time.time() >= timeout_at:
-                break
-
-    finally:
-        print("\n")
+        logger.warning("Invalid request URL captured, skipping.")
 
     raise TimeoutError()
 
