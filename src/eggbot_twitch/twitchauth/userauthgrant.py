@@ -9,6 +9,7 @@ class UserAuthGrant:
     """Represent the response of a user authorization grant request."""
 
     state: str = ""
+    redirect_url: str = ""
     code: str = ""
     scope: str = ""
     error: str = ""
@@ -22,6 +23,7 @@ class UserAuthGrant:
 
         return cls(
             state=query.get("state", [""])[0],
+            redirect_url=f"{parts.scheme}://{parts.netloc}{parts.path}",
             code=query.get("code", [""])[0],
             scope=query.get("scope", [""])[0],
             error=query.get("error", [""])[0],

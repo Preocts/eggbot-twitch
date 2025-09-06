@@ -29,12 +29,24 @@ MOCK_AUTHE_RESPONSE = {
 
 @pytest.fixture
 def valid_grant() -> UserAuthGrant:
-    return UserAuthGrant("123", "mock_code", "user:email:read")
+    return UserAuthGrant(
+        state="123",
+        redirect_url="http://localhost:5005/callback",
+        code="mock_code",
+        scope="user:email:read",
+    )
 
 
 @pytest.fixture
 def invalid_grant() -> UserAuthGrant:
-    return UserAuthGrant("123", "", "", "error", "user denied")
+    return UserAuthGrant(
+        state="123",
+        redirect_url="http://localhost:5005/callback",
+        code="",
+        scope="",
+        error="error",
+        error_description="user denied",
+    )
 
 
 @pytest.fixture

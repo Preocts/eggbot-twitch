@@ -40,7 +40,12 @@ def patch_secrets_token_urlsafe(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_get_user_grant_success() -> None:
     """Validate that autho code is successfully extracted from callback."""
     callback_url = "http://localhost:5005/callback?code=mock_code&scope=user:read:chat+user:read:email&state=123"
-    expected_autho = UserAuthGrant("123", "mock_code", "user:read:chat user:read:email")
+    expected_autho = UserAuthGrant(
+        state="123",
+        redirect_url="http://localhost:5005/callback",
+        code="mock_code",
+        scope="user:read:chat user:read:email",
+    )
     expected_stdout = "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=mock&redirect_uri=http://localhost:5005/callback&scope=user%3Aread%3Achat%20user%3Aread%3Aemail&state="
     stdout = io.StringIO()
 
@@ -62,7 +67,14 @@ def test_get_user_grant_success() -> None:
 def test_get_user_grant_unsuccess() -> None:
     """Validate that errors are handled."""
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=123"
-    expected = UserAuthGrant("123", "", "", "access_denied", "The user denied you access")
+    expected = UserAuthGrant(
+        state="123",
+        redirect_url="http://localhost:5005/callback",
+        code="",
+        scope="",
+        error="access_denied",
+        error_description="The user denied you access",
+    )
 
     with delayed_get_request(1, callback_url):
         authorization = get_user_grant(
