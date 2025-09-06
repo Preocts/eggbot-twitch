@@ -15,19 +15,22 @@ _DEFAULT_USER_AUTH_FILE = "user_auth.json"
 logger = logging.getLogger("twitchauth")
 
 
-def get_user_authorization(
+def get_authorization(
     twitch_app_client_id: str,
     twitch_app_client_secret: str,
     user_auth: UserAuth | UserAuthGrant,
 ) -> UserAuth | None:
     """
-    Get a new bearer authorization from a user grant or refresh existing auth.
+    Get an auth token from TwitchTV.
+
+    The type of token will depend on the user_auth provided. If a UserAuthGrant is given
+    then a new authorization token will be requested, creating a new session. If a
+    UserAuth is given, the existing session will be refreshed if possible.
 
     Args:
         twitch_app_client_id: The registered Twitch app id
         twitch_app_client_secret: The registered Twitch app secret
-        user_auth: Either a UserAuthGrant or a UserAuth object. The former will request
-            a new authorization. The latter will attempt to refresh an existing authorization.
+        user_auth: Either a UserAuthGrant or a UserAuth object.
     """
     if isinstance(user_auth, UserAuthGrant) and user_auth.error:
         return None

@@ -12,7 +12,7 @@ import responses.matchers
 
 from eggbot_twitch.twitchauth import UserAuth
 from eggbot_twitch.twitchauth import UserAuthGrant
-from eggbot_twitch.twitchauth import get_user_authorization
+from eggbot_twitch.twitchauth import get_authorization
 from eggbot_twitch.twitchauth import load_user_authorization
 from eggbot_twitch.twitchauth import save_user_authorization
 
@@ -59,7 +59,7 @@ def userauthfilename() -> Generator[str, None, None]:
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_user_authorization_success(
+def test_get_authorization_success(
     valid_grant: UserAuthGrant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -83,7 +83,7 @@ def test_get_user_authorization_success(
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    userauth = get_user_authorization(
+    userauth = get_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
@@ -99,7 +99,7 @@ def test_get_user_authorization_success(
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
+def test_get_authorization_failure(valid_grant: UserAuthGrant) -> None:
     params_match = {
         "client_id": "mock_id",
         "client_secret": "mock_secret",
@@ -116,7 +116,7 @@ def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    userauth = get_user_authorization(
+    userauth = get_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
@@ -126,7 +126,7 @@ def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> None:
+def test_get_authorization_invalid_response(valid_grant: UserAuthGrant) -> None:
     mock_resp = copy.deepcopy(MOCK_AUTHE_RESPONSE)
     del mock_resp["refresh_token"]
 
@@ -136,7 +136,7 @@ def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> 
         body=json.dumps(mock_resp),
     )
 
-    userauth = get_user_authorization(
+    userauth = get_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
@@ -146,7 +146,7 @@ def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> 
 
 
 @responses.activate
-def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
+def test_get_authorization_invalid_grant(invalid_grant) -> None:
 
     responses.add(
         method="POST",
@@ -154,7 +154,7 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
         body=AssertionError("requests.post should NOT have been called."),
     )
 
-    userauth = get_user_authorization(
+    userauth = get_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=invalid_grant,
@@ -164,7 +164,7 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
 
 
 @responses.activate(assert_all_requests_are_fired=True)
-def test_get_user_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the success of a fresh request. A new UserAuth object should be returned."""
     # Authentication calculates time to expires so we need a static, testable time.
     static_time = 100.0
@@ -187,7 +187,7 @@ def test_get_user_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch)
         match=[responses.matchers.urlencoded_params_matcher(params_match)],
     )
 
-    new_user_auth = get_user_authorization(
+    new_user_auth = get_authorization(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=user_auth,

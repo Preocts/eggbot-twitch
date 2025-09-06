@@ -5,7 +5,7 @@ from __future__ import annotations
 from eggviron import Eggviron
 from eggviron import EnvFileLoader
 
-from .twitchauth import get_user_authorization
+from .twitchauth import get_authorization
 from .twitchauth import get_user_grant
 
 if __name__ == "__main__":
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     print("Authorization granted.")
 
-    authe = get_user_authorization(
+    authe = get_authorization(
         twitch_app_client_id=twitch_app_client_id,
         twitch_app_client_secret=twitch_app_client_secret,
         user_auth=autho,
