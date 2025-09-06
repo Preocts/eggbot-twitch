@@ -15,10 +15,11 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Auth(abc.ABC):
-    """Superclass of all Auth classes. Provides shared methods."""
+    """Authorization token for TwitchTV."""
 
     access_token: str
     expires_in: int
+    expires_at: int
 
     @classmethod
     @abc.abstractmethod

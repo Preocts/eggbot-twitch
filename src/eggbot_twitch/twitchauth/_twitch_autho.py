@@ -6,6 +6,7 @@ import os
 
 import requests
 
+from ._auth import Auth
 from .clientauth import ClientAuth
 from .userauth import UserAuth
 from .userauthgrant import UserAuthGrant
@@ -19,8 +20,8 @@ logger = logging.getLogger("twitchauth")
 def get_authorization(
     twitch_app_client_id: str,
     twitch_app_client_secret: str,
-    user_auth: UserAuth | UserAuthGrant | None = None,
-) -> UserAuth | ClientAuth | None:
+    user_auth: UserAuthGrant | Auth | None = None,
+) -> Auth | None:
     """
     Get an auth token from TwitchTV.
 
@@ -31,7 +32,7 @@ def get_authorization(
     Args:
         twitch_app_client_id: The registered Twitch app id
         twitch_app_client_secret: The registered Twitch app secret
-        user_auth: Either a UserAuthGrant or a UserAuth object. If None, a client
+        user_auth: Either a UserAuthGrant or a Auth object. If None, a client
             authorization is requested.
     """
     if isinstance(user_auth, UserAuthGrant) and user_auth.error:

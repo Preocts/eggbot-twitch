@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ._auth import Auth
 from ._twitch_autho import get_authorization
 from ._twitch_autho import load_user_authorization
 from ._twitch_autho import save_user_authorization
@@ -9,6 +10,7 @@ from .userauth import UserAuth
 from .userauthgrant import UserAuthGrant
 
 __all__ = [
+    "Auth",
     "ClientAuth",
     "UserAuth",
     "UserAuthGrant",
