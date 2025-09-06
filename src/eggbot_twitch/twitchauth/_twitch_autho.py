@@ -6,6 +6,7 @@ import os
 
 import requests
 
+from .clientauth import ClientAuth
 from .userauth import UserAuth
 from .userauthgrant import UserAuthGrant
 
@@ -18,8 +19,8 @@ logger = logging.getLogger("twitchauth")
 def get_authorization(
     twitch_app_client_id: str,
     twitch_app_client_secret: str,
-    user_auth: UserAuth | UserAuthGrant,
-) -> UserAuth | None:
+    user_auth: UserAuth | UserAuthGrant | None = None,
+) -> UserAuth | ClientAuth | None:
     """
     Get an auth token from TwitchTV.
 
@@ -30,32 +31,39 @@ def get_authorization(
     Args:
         twitch_app_client_id: The registered Twitch app id
         twitch_app_client_secret: The registered Twitch app secret
-        user_auth: Either a UserAuthGrant or a UserAuth object.
+        user_auth: Either a UserAuthGrant or a UserAuth object. If None, a client
+            authorization is requested.
     """
     if isinstance(user_auth, UserAuthGrant) and user_auth.error:
         return None
 
-    if isinstance(user_auth, UserAuthGrant):
-        data = {
-            "client_id": twitch_app_client_id,
-            "client_secret": twitch_app_client_secret,
-            "code": user_auth.code,
-            "grant_type": "authorization_code",
-            "redirect_uri": user_auth.redirect_url,
-        }
+    data = {
+        "client_id": twitch_app_client_id,
+        "client_secret": twitch_app_client_secret,
+        "grant_type": "client_credentials",
+    }
 
-    else:
-        data = {
-            "client_id": twitch_app_client_id,
-            "client_secret": twitch_app_client_secret,
-            "grant_type": "refresh_token",
-            "refresh_token": user_auth.refresh_token,
-        }
+    if isinstance(user_auth, UserAuthGrant):
+        data.update(
+            {
+                "code": user_auth.code,
+                "grant_type": "authorization_code",
+                "redirect_uri": user_auth.redirect_url,
+            }
+        )
+
+    elif isinstance(user_auth, UserAuth):
+        data.update(
+            {
+                "grant_type": "refresh_token",
+                "refresh_token": user_auth.refresh_token,
+            }
+        )
 
     return _request_token(data)
 
 
-def _request_token(data: dict[str, str]) -> UserAuth | None:
+def _request_token(data: dict[str, str]) -> UserAuth | ClientAuth | None:
     """Request a token, either new or a refresh, given the API data to post."""
     response = requests.post(_AUTHO_TOKEN_URL, data=data)
 
@@ -68,7 +76,11 @@ def _request_token(data: dict[str, str]) -> UserAuth | None:
         return None
 
     try:
-        return UserAuth.parse_response(response.json())
+        if data["grant_type"] == "client_credentials":
+            return ClientAuth.parse_response(response.json())
+
+        else:
+            return UserAuth.parse_response(response.json())
 
     except KeyError:
         logger.error("Unable to parse unexpected response format.")
