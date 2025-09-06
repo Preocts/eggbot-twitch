@@ -87,7 +87,6 @@ def test_get_user_authorization_success(
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
-        redirect_url="http://localhost:5005/callback",
     )
 
     assert isinstance(userauth, UserAuth)
@@ -121,7 +120,6 @@ def test_get_user_authorization_failure(valid_grant: UserAuthGrant) -> None:
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
-        redirect_url="http://localhost:5005/callback",
     )
 
     assert userauth is None
@@ -142,7 +140,6 @@ def test_get_user_authorization_invalid_response(valid_grant: UserAuthGrant) -> 
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=valid_grant,
-        redirect_url="http://localhost:5005/callback",
     )
 
     assert userauth is None
@@ -161,7 +158,6 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
         twitch_app_client_id="mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=invalid_grant,
-        redirect_url="http://localhost:5005/callback",
     )
 
     assert userauth is None

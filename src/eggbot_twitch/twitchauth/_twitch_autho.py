@@ -19,7 +19,6 @@ def get_user_authorization(
     twitch_app_client_id: str,
     twitch_app_client_secret: str,
     user_auth: UserAuth | UserAuthGrant,
-    redirect_url: str | None = None,
 ) -> UserAuth | None:
     """
     Get a new bearer authorization from a user grant or refresh existing auth.
@@ -29,7 +28,6 @@ def get_user_authorization(
         twitch_app_client_secret: The registered Twitch app secret
         user_auth: Either a UserAuthGrant or a UserAuth object. The former will request
             a new authorization. The latter will attempt to refresh an existing authorization.
-        redirect_url: The registered Twitch app redirect url. Only needed with UserAuthGrant.
     """
     if isinstance(user_auth, UserAuthGrant) and user_auth.error:
         return None
@@ -40,7 +38,7 @@ def get_user_authorization(
             "client_secret": twitch_app_client_secret,
             "code": user_auth.code,
             "grant_type": "authorization_code",
-            "redirect_uri": redirect_url or "",
+            "redirect_uri": user_auth.redirect_url,
         }
 
     else:

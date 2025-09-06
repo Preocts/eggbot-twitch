@@ -45,7 +45,6 @@ if __name__ == "__main__":
         twitch_app_client_id=twitch_app_client_id,
         twitch_app_client_secret=twitch_app_client_secret,
         user_auth=autho,
-        redirect_url=redirect_url,
     )
 
     if authe is None:
