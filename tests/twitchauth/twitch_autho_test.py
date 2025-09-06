@@ -155,22 +155,6 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
     assert userauth is None
 
 
-@responses.activate
-def test_get_user_authorization_invalid_use(invalid_grant) -> None:
-    pattern = "Expected UserAuth or UserAuthGrant, got <class 'NoneType'>"
-    responses.add(
-        method="POST",
-        url="https://id.twitch.tv/oauth2/token",
-        body=AssertionError("requests.post should NOT have been called."),
-    )
-
-    with pytest.raises(ValueError, match=pattern):
-        get_user_authorization(  # type: ignore
-            twitch_app_client_id="mock_id",
-            twitch_app_client_secret="mock_secret",
-        )
-
-
 @responses.activate(assert_all_requests_are_fired=True)
 def test_get_user_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the success of a fresh request. A new UserAuth object should be returned."""

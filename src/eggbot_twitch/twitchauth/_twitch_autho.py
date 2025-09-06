@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import overload
 
 import requests
 
@@ -16,51 +15,22 @@ _DEFAULT_USER_AUTH_FILE = "user_auth.json"
 logger = logging.getLogger("twitchauth")
 
 
-@overload
 def get_user_authorization(
     twitch_app_client_id: str,
     twitch_app_client_secret: str,
-    user_auth: UserAuthGrant,
-    redirect_url: str,
-) -> UserAuth | None:
-    """
-    Get bearer authorization from a user grant.
-
-    Used to request a new authorization for the app only when no prior authorization
-    exists or an authorization refresh is rejected. Requires user authorization grant.
-
-    Args:
-        twitch_app_client_id: The registered Twitch app id
-        twitch_app_client_secret: The registered Twitch app secret
-        user_auth: The resulting UserAuthGrant from a user auth request
-        redirect_url: The registered Twitch app redirect url
-    """
-    ...
-
-
-@overload
-def get_user_authorization(
-    twitch_app_client_id: str,
-    twitch_app_client_secret: str,
-    user_auth: UserAuth,
-) -> UserAuth | None:
-    """
-    Refresh an existing bearer authorization.
-
-    Args:
-        twitch_app_client_id: The registered Twitch app id
-        twitch_app_client_secret: The registered Twitch app secret
-        user_auth: Existing UserAuth to refresh
-    """
-    ...
-
-
-def get_user_authorization(
-    twitch_app_client_id: str,
-    twitch_app_client_secret: str,
-    user_auth: UserAuth | UserAuthGrant | None = None,
+    user_auth: UserAuth | UserAuthGrant,
     redirect_url: str | None = None,
 ) -> UserAuth | None:
+    """
+    Get a new bearer authorization from a user grant or refresh existing auth.
+
+    Args:
+        twitch_app_client_id: The registered Twitch app id
+        twitch_app_client_secret: The registered Twitch app secret
+        user_auth: Either a UserAuthGrant or a UserAuth object. The former will request
+            a new authorization. The latter will attempt to refresh an existing authorization.
+        redirect_url: The registered Twitch app redirect url. Only needed with UserAuthGrant.
+    """
     if isinstance(user_auth, UserAuthGrant) and user_auth.error:
         return None
 
@@ -73,16 +43,13 @@ def get_user_authorization(
             "redirect_uri": redirect_url or "",
         }
 
-    elif isinstance(user_auth, UserAuth):
+    else:
         data = {
             "client_id": twitch_app_client_id,
             "client_secret": twitch_app_client_secret,
             "grant_type": "refresh_token",
             "refresh_token": user_auth.refresh_token,
         }
-
-    else:
-        raise ValueError(f"Expected UserAuth or UserAuthGrant, got {type(user_auth)}")
 
     return _request_token(data)
 
