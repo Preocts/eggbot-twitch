@@ -26,15 +26,12 @@ class UserAuth:
     @classmethod
     def parse_response(cls, response: dict[str, Any]) -> UserAuth:
         """Build from authorization response from TwitchTV."""
-        if "expires_at" in response:
-            expires_at = response["expires_at"]
-        else:
-            expires_at = int(response["expires_in"] + time.time())
+        expires_at = int(response["expires_in"] + time.time())
 
         return cls(
             access_token=response["access_token"],
             expires_in=response["expires_in"],
-            expires_at=expires_at,
+            expires_at=response.get("expires_at", expires_at),
             refresh_token=response["refresh_token"],
             scope=tuple(response["scope"]),
             token_type=response["token_type"],

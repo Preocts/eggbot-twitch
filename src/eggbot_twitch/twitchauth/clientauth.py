@@ -22,6 +22,6 @@ class ClientAuth:
         return cls(
             access_token=response["access_token"],
             expires_in=response["expires_in"],
-            expires_at=expires_at,
+            expires_at=response.get("expires_at", expires_at),
             token_type=response["token_type"],
         )
