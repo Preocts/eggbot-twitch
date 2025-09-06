@@ -62,6 +62,31 @@ def get_user_authorization(
         return None
 
 
+def refresh_user_authorization(
+    twitch_app_client_id: str,
+    twitch_app_client_secret: str,
+    user_auth: UserAuth,
+) -> UserAuth | None:
+    """
+    Refresh an existing bearer authorization.
+
+    Args:
+        twitch_app_client_id: The registered Twitch app id
+        twitch_app_client_secret: The registered Twitch app secret
+        user_auth: Existing UserAuth to refresh
+    """
+    data = {
+        "client_id": twitch_app_client_id,
+        "client_secret": twitch_app_client_secret,
+        "grant_type": "refresh_token",
+        "refresh_token": user_auth.refresh_token,
+    }
+
+    response = requests.post(_AUTHO_TOKEN_URL, data=data)
+
+    return UserAuth.parse_response(response.json())
+
+
 def _resolve_user_auth_file(user_auth_file: str | None) -> str:
     """Resovles user_auth_file to provided string, $EGGBOT_TWITCH_USER_AUTH_FILE, or _DEFAULT_USER_AUTH_FILE."""
     return (

@@ -14,6 +14,7 @@ from eggbot_twitch.twitchauth import UserAuth
 from eggbot_twitch.twitchauth import UserAuthGrant
 from eggbot_twitch.twitchauth import get_user_authorization
 from eggbot_twitch.twitchauth import load_user_authorization
+from eggbot_twitch.twitchauth import refresh_user_authorization
 from eggbot_twitch.twitchauth import save_user_authorization
 
 MOCK_AUTHE_RESPONSE = {
@@ -153,6 +154,46 @@ def test_get_user_authorization_invalid_grant(invalid_grant) -> None:
     )
 
     assert userauth is None
+
+
+@responses.activate(assert_all_requests_are_fired=True)
+def test_refresh_user_authorization_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test the success of a fresh request. A new UserAuth object should be returned."""
+    # Authentication calculates time to expires so we need a static, testable time.
+    static_time = 100.0
+    monkeypatch.setattr(time, "time", lambda: static_time)
+    user_auth = UserAuth.parse_response(MOCK_AUTHE_RESPONSE)
+
+    mock_response = json.dumps(MOCK_AUTHE_RESPONSE | {"access_token": "new_mock_access_token"})
+
+    params_match = {
+        "client_id": "mock_id",
+        "client_secret": "mock_secret",
+        "grant_type": "refresh_token",
+        "refresh_token": "mock_refresh_token",
+    }
+
+    responses.add(
+        method="POST",
+        url="https://id.twitch.tv/oauth2/token",
+        body=mock_response,
+        match=[responses.matchers.urlencoded_params_matcher(params_match)],
+    )
+
+    new_user_auth = refresh_user_authorization(
+        twitch_app_client_id="mock_id",
+        twitch_app_client_secret="mock_secret",
+        user_auth=user_auth,
+    )
+
+    assert isinstance(new_user_auth, UserAuth)
+    assert new_user_auth is not user_auth
+    assert new_user_auth.access_token == "new_mock_access_token"
+    assert new_user_auth.expires_in == 14124
+    assert new_user_auth.expires_at == int(14124 + static_time)
+    assert new_user_auth.refresh_token == "mock_refresh_token"
+    assert new_user_auth.scope == ("user:email:read",)
+    assert new_user_auth.token_type == "bearer"
 
 
 def test_load_user_authorization_success_filename(userauthfilename: str) -> None:
