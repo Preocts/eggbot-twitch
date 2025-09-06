@@ -44,22 +44,7 @@ def get_user_authorization(
         "redirect_uri": redirect_url,
     }
 
-    response = requests.post(_AUTHO_TOKEN_URL, data=data)
-
-    if not response.ok:
-        logger.error(
-            "Request for authorizatoin token failed: (%d) %s",
-            response.status_code,
-            response.text,
-        )
-        return None
-
-    try:
-        return UserAuth.parse_response(response.json())
-
-    except KeyError:
-        logger.error("Unable to parse unexpected response format.")
-        return None
+    return _request_token(data)
 
 
 def refresh_user_authorization(
@@ -82,9 +67,27 @@ def refresh_user_authorization(
         "refresh_token": user_auth.refresh_token,
     }
 
+    return _request_token(data)
+
+
+def _request_token(data: dict[str, str]) -> UserAuth | None:
+    """Request a token, either new or a refresh, given the API data to post."""
     response = requests.post(_AUTHO_TOKEN_URL, data=data)
 
-    return UserAuth.parse_response(response.json())
+    if not response.ok:
+        logger.error(
+            "Request for authorization token failed: (%d) %s",
+            response.status_code,
+            response.text,
+        )
+        return None
+
+    try:
+        return UserAuth.parse_response(response.json())
+
+    except KeyError:
+        logger.error("Unable to parse unexpected response format.")
+        return None
 
 
 def _resolve_user_auth_file(user_auth_file: str | None) -> str:
