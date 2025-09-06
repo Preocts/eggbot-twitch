@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import dataclasses
-import json
 import time
-from typing import TYPE_CHECKING
+from typing import Any
 
-if TYPE_CHECKING:
-    from typing import Any
-
-    from _typeshed import SupportsRead
-    from _typeshed import SupportsWrite
+from ._auth import Auth
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class UserAuth:
+class UserAuth(Auth):
     """Represent the response of an authorization request"""
 
     access_token: str
@@ -36,12 +31,3 @@ class UserAuth:
             scope=tuple(response["scope"]),
             token_type=response["token_type"],
         )
-
-    @classmethod
-    def load(cls, fp: SupportsRead[bytes]) -> UserAuth:
-        """Load UserAuth from a file. Must be in JSON format."""
-        return cls.parse_response(json.load(fp))
-
-    def dump(self, fp: SupportsWrite[bytes]) -> None:
-        """Save UserAuth to a file in JSON format."""
-        fp.write(json.dumps(dataclasses.asdict(self)).encode())

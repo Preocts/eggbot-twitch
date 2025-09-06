@@ -4,9 +4,11 @@ import dataclasses
 import time
 from typing import Any
 
+from ._auth import Auth
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class ClientAuth:
+class ClientAuth(Auth):
     """Represent the response of a client authorization request"""
 
     access_token: str
