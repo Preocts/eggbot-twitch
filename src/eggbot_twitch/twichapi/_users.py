@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import requests
 
+from ._exceptions import BadRequestError
 from ._exceptions import UnauthorizedError
 
 _BASE_URL = "https://api.twitch.tv/helix"
@@ -60,7 +61,15 @@ def get_users_raw(
     response = requests.get(url, params=params, headers=headers)
 
     if not response.ok:
-        raise UnauthorizedError(
+        if response.status_code == 401:
+            raise UnauthorizedError(
+                status_code=response.status_code,
+                url=response.request.url or "Undefined",
+                error=response.json().get("error", "Undefined"),
+                message=response.json().get("message", "Undefined"),
+            )
+
+        raise BadRequestError(
             status_code=response.status_code,
             url=response.request.url or "Undefined",
             error=response.json().get("error", "Undefined"),

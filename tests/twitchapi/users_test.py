@@ -7,8 +7,9 @@ import pytest
 import responses
 from responses import matchers
 
-from eggbot_twitch.twichapi import get_users_raw
+from eggbot_twitch.twichapi import BadRequestError
 from eggbot_twitch.twichapi import UnauthorizedError
+from eggbot_twitch.twichapi import get_users_raw
 
 
 @dataclasses.dataclass
@@ -145,3 +146,25 @@ def test_get_users_raw_unauthorized_response() -> None:
     assert err.value.url == "https://api.twitch.tv/helix/users"
     assert err.value.error == "Unauthorized"
     assert err.value.message == "Invalid OAuth token"
+
+
+@responses.activate(assert_all_requests_are_fired=True)
+def test_get_users_raw_bad_request() -> None:
+    """Bad requests (400) should raise a custom exception"""
+    mock_error = {"error": "Bad Request", "status": 400, "message": "Invalid request"}
+
+    responses.add(
+        method="GET",
+        url="https://api.twitch.tv/helix/users",
+        body=json.dumps(mock_error),
+        status=400,
+    )
+
+    with pytest.raises(BadRequestError) as err:
+        get_users_raw("mock_client_id", MockAuth())
+
+    assert str(err.value) == "(400) Bad Request: Invalid request"
+    assert err.value.status_code == 400
+    assert err.value.url == "https://api.twitch.tv/helix/users"
+    assert err.value.error == "Bad Request"
+    assert err.value.message == "Invalid request"
