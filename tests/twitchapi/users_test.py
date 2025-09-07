@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import json
 
+import pytest
 import responses
 from responses import matchers
 
@@ -98,3 +99,26 @@ def test_get_users_raw_success() -> None:
     )
 
     assert result == expected_result
+
+
+@responses.activate()
+def test_get_users_raw_request_exceeds_maximum_lookups() -> None:
+    """Assert a raised exception if the 100 user id and login limit is exceeded."""
+    user_ids = ["123"] * 51
+    user_logins = ["foo"] * 51
+    expected_error = "Total number of user_ids and user_logins exceeded 100."
+
+    # Create a failure case if an HTTP request is attempted
+    responses.add(
+        method="GET",
+        url="https://api.twitch.tv/helix/users",
+        body=AssertionError("This should not be called."),
+    )
+
+    with pytest.raises(ValueError, match=expected_error):
+        get_users_raw(
+            client_id="mock_client_id",
+            auth=MockAuth(),
+            user_ids=user_ids,
+            user_logins=user_logins,
+        )

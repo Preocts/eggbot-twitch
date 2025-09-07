@@ -41,6 +41,9 @@ def get_users_raw(
         user_ids: A sequence of string user ids.
         user_logins: A sequence of string user logins (user names).
     """
+    if len(user_ids or []) + len(user_logins or []) > 100:
+        raise ValueError("Total number of user_ids and user_logins exceeded 100.")
+
     url = _BASE_URL + "/users"
     headers = {
         "Authorization": f"Bearer {auth.access_token}",
