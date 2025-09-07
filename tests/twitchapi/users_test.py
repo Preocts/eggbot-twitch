@@ -8,6 +8,7 @@ import responses
 from responses import matchers
 
 from eggbot_twitch.twichapi import get_users_raw
+from eggbot_twitch.twichapi import UnauthorizedError
 
 
 @dataclasses.dataclass
@@ -122,3 +123,25 @@ def test_get_users_raw_request_exceeds_maximum_lookups() -> None:
             user_ids=user_ids,
             user_logins=user_logins,
         )
+
+
+@responses.activate(assert_all_requests_are_fired=True)
+def test_get_users_raw_unauthorized_response() -> None:
+    """Authorized responses (401) should raise custom exception."""
+    mock_error = {"error": "Unauthorized", "status": 401, "message": "Invalid OAuth token"}
+
+    responses.add(
+        method="GET",
+        url="https://api.twitch.tv/helix/users",
+        body=json.dumps(mock_error),
+        status=401,
+    )
+
+    with pytest.raises(UnauthorizedError) as err:
+        get_users_raw("mock_client_id", MockAuth())
+
+    assert str(err.value) == "(401) Unauthorized: Invalid OAuth token"
+    assert err.value.status_code == 401
+    assert err.value.url == "https://api.twitch.tv/helix/users"
+    assert err.value.error == "Unauthorized"
+    assert err.value.message == "Invalid OAuth token"
