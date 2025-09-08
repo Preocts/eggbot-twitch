@@ -21,10 +21,11 @@ class Auth(abc.ABC):
     access_token: str
     expires_in: int
     expires_at: int
+    client_id: str
 
     @classmethod
     @abc.abstractmethod
-    def parse_response(cls, response: dict[str, Any]) -> Self: ...
+    def parse_response(cls, response: dict[str, Any], client_id: str) -> Self: ...
 
     @property
     def is_expired(self) -> bool:
@@ -34,7 +35,9 @@ class Auth(abc.ABC):
     @classmethod
     def load(cls, fp: SupportsRead[bytes]) -> Self:
         """Load UserAuth from a file. Must be in JSON format."""
-        return cls.parse_response(json.load(fp))
+        contents = json.load(fp)
+        client_id = contents.pop("client_id")
+        return cls.parse_response(contents, client_id)
 
     def dump(self, fp: SupportsWrite[bytes]) -> None:
         """Save UserAuth to a file in JSON format."""

@@ -14,7 +14,7 @@ MOCK_USER_AUTH = {
 
 def test_parse_response() -> None:
     """Test the parsing of a response."""
-    userauth = UserAuth.parse_response(MOCK_USER_AUTH)
+    userauth = UserAuth.parse_response(MOCK_USER_AUTH, "mock_id")
 
     assert userauth.access_token == "mock_access_token"
     assert userauth.expires_in == 15701
@@ -22,3 +22,4 @@ def test_parse_response() -> None:
     assert userauth.refresh_token == "mock_refresh_token"
     assert userauth.scope == ("user:read:chat", "user:read:email")
     assert userauth.token_type == "bearer"
+    assert userauth.client_id == "mock_id"

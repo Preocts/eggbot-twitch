@@ -12,9 +12,10 @@ MOCK_CLIENT_AUTH_RESPONSE = {
 
 def test_parse_response() -> None:
     """Test the parsing of a response."""
-    userauth = ClientAuth.parse_response(MOCK_CLIENT_AUTH_RESPONSE)
+    clientauth = ClientAuth.parse_response(MOCK_CLIENT_AUTH_RESPONSE, "mock_id")
 
-    assert userauth.access_token == "mock_access_token"
-    assert userauth.expires_in == 14124
-    assert userauth.expires_at == 14126
-    assert userauth.token_type == "bearer"
+    assert clientauth.access_token == "mock_access_token"
+    assert clientauth.expires_in == 14124
+    assert clientauth.expires_at == 14126
+    assert clientauth.token_type == "bearer"
+    assert clientauth.client_id == "mock_id"
