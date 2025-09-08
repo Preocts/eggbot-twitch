@@ -17,6 +17,13 @@ class MockAuth:
     access_token: str = "mock_access_token"
     client_id: str = "mock_client_id"
 
+    @property
+    def headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.access_token}",
+            "Client-Id": self.client_id,
+        }
+
 
 @responses.activate(assert_all_requests_are_fired=True)
 def test_get_users_raw_success() -> None:

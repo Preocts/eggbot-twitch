@@ -25,6 +25,9 @@ if TYPE_CHECKING:
         @property
         def client_id(self) -> str: ...
 
+        @property
+        def headers(self) -> dict[str, str]: ...
+
 
 def get_users_raw(
     auth: AuthType,
@@ -50,17 +53,13 @@ def get_users_raw(
         raise ValueError("Total number of user_ids and user_logins exceeded 100.")
 
     url = _BASE_URL + "/users"
-    headers = {
-        "Authorization": f"Bearer {auth.access_token}",
-        "Client-Id": auth.client_id,
-    }
 
     params = {
         "id": user_ids if user_ids else [],
         "login": user_logins if user_logins else [],
     }
 
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=auth.headers)
 
     if not response.ok:
         if response.status_code == 401:
