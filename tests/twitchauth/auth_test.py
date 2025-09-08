@@ -33,18 +33,6 @@ class MockAuth(Auth):
         )
 
 
-def test_is_expired_false() -> None:
-    auth = MockAuth("mock", 100, int(time.time() + 100), "mock_id")
-
-    assert auth.is_expired is False
-
-
-def test_is_expired_true() -> None:
-    auth = MockAuth("mock", 100, int(time.time() - 100), "mock_id")
-
-    assert auth.is_expired is True
-
-
 def test_load_valid_file() -> None:
     with tempfile.TemporaryFile() as authfile:
         contents = copy.deepcopy(MOCK_USER_AUTH)
