@@ -22,9 +22,11 @@ if TYPE_CHECKING:
         @property
         def access_token(self) -> str: ...
 
+        @property
+        def client_id(self) -> str: ...
+
 
 def get_users_raw(
-    client_id: str,
     auth: AuthType,
     *,
     user_ids: Sequence[str] | None = None,
@@ -50,7 +52,7 @@ def get_users_raw(
     url = _BASE_URL + "/users"
     headers = {
         "Authorization": f"Bearer {auth.access_token}",
-        "Client-Id": client_id,
+        "Client-Id": auth.client_id,
     }
 
     params = {

@@ -15,6 +15,7 @@ from eggbot_twitch.twichapi import get_users_raw
 @dataclasses.dataclass
 class MockAuth:
     access_token: str = "mock_access_token"
+    client_id: str = "mock_client_id"
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -22,12 +23,11 @@ def test_get_users_raw_success() -> None:
     """Successfully fetch user data using both user id and user name to valididate api call."""
     user_ids = ["123", "456"]
     user_logins = ["foo", "bar"]
-    client_id = "mock_client_id"
 
     expected_url = "https://api.twitch.tv/helix/users?id=123&id=456&login=foo&login=bar"
     expected_headers = {
         "Authorization": f"Bearer {MockAuth().access_token}",
-        "Client-Id": client_id,
+        "Client-Id": MockAuth().client_id,
     }
     expected_result = {
         "data": [
@@ -94,7 +94,6 @@ def test_get_users_raw_success() -> None:
     )
 
     result = get_users_raw(
-        client_id=client_id,
         auth=MockAuth(),
         user_ids=user_ids,
         user_logins=user_logins,
@@ -119,7 +118,6 @@ def test_get_users_raw_request_exceeds_maximum_lookups() -> None:
 
     with pytest.raises(ValueError, match=expected_error):
         get_users_raw(
-            client_id="mock_client_id",
             auth=MockAuth(),
             user_ids=user_ids,
             user_logins=user_logins,
@@ -139,7 +137,7 @@ def test_get_users_raw_unauthorized_response() -> None:
     )
 
     with pytest.raises(UnauthorizedError) as err:
-        get_users_raw("mock_client_id", MockAuth())
+        get_users_raw(MockAuth())
 
     assert str(err.value) == "(401) Unauthorized: Invalid OAuth token"
     assert err.value.status_code == 401
@@ -161,7 +159,7 @@ def test_get_users_raw_bad_request() -> None:
     )
 
     with pytest.raises(BadRequestError) as err:
-        get_users_raw("mock_client_id", MockAuth())
+        get_users_raw(MockAuth())
 
     assert str(err.value) == "(400) Bad Request: Invalid request"
     assert err.value.status_code == 400
