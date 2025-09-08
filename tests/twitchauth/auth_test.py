@@ -61,3 +61,14 @@ def test_dump() -> None:
         results = authfile.read()
 
     assert json.loads(results.decode()) == expected
+
+
+def test_headers_property() -> None:
+    expected_headers = {
+        "Authorization": "Bearer mock_access_token",
+        "Client-Id": "mock_id",
+    }
+
+    auth = MockAuth.parse_response(MOCK_USER_AUTH, "mock_id")
+
+    assert auth.headers == expected_headers

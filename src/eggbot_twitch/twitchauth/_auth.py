@@ -26,6 +26,14 @@ class Auth(abc.ABC):
     @abc.abstractmethod
     def parse_response(cls, response: dict[str, Any], client_id: str) -> Self: ...
 
+    @property
+    def headers(self) -> dict[str, str]:
+        """HTTP Headers with access_token and client_id fields defined."""
+        return {
+            "Authorization": f"Bearer {self.access_token}",
+            "Client-Id": self.client_id,
+        }
+
     @classmethod
     def load(cls, fp: SupportsRead[bytes]) -> Self:
         """Load UserAuth from a file. Must be in JSON format."""
