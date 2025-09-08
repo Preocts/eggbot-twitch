@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+import dataclasses
+import json
+import tempfile
+import time
+from typing import Any
+
+from eggbot_twitch.twitchauth import Auth
+
+MOCK_USER_AUTH = {
+    "access_token": "mock_access_token",
+    "expires_in": 15701,
+    "expires_at": 1756875356,
+}
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class MockAuth(Auth):
+    """Mock Auth child class for testing shared implementation."""
+
+    @classmethod
+    def parse_response(cls, response: dict[str, Any]) -> MockAuth:
+        """Build from authorization response from TwitchTV."""
+        expires_at = int(response["expires_in"] + time.time())
+
+        return cls(
+            access_token=response["access_token"],
+            expires_in=response["expires_in"],
+            expires_at=response.get("expires_at", expires_at),
+        )
+
+
+def test_is_expired_false() -> None:
+    auth = MockAuth("mock", 100, int(time.time() + 100))
+
+    assert auth.is_expired is False
+
+
+def test_is_expired_true() -> None:
+    auth = MockAuth("mock", 100, int(time.time() - 100))
+
+    assert auth.is_expired is True
+
+
+def test_load_valid_file() -> None:
+    with tempfile.TemporaryFile() as authfile:
+        authfile.write(json.dumps(MOCK_USER_AUTH).encode())
+        authfile.read()
+        authfile.seek(0)
+
+        userauth = MockAuth.load(authfile)
+
+    assert userauth.access_token == "mock_access_token"
+    assert userauth.expires_in == 15701
+    assert userauth.expires_at == 1756875356
+
+
+def test_dump() -> None:
+    auth = MockAuth.parse_response(MOCK_USER_AUTH)
+    with tempfile.TemporaryFile() as authfile:
+        auth.dump(authfile)
+        authfile.seek(0)
+
+        results = authfile.read()
+
+    assert json.loads(results.decode()) == MOCK_USER_AUTH

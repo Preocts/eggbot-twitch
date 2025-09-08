@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import json
+import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -24,6 +25,11 @@ class Auth(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def parse_response(cls, response: dict[str, Any]) -> Self: ...
+
+    @property
+    def is_expired(self) -> bool:
+        """True if auth is expired."""
+        return time.time() > self.expires_at
 
     @classmethod
     def load(cls, fp: SupportsRead[bytes]) -> Self:
