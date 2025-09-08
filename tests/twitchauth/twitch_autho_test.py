@@ -5,6 +5,7 @@ import json
 import tempfile
 import time
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 import responses
@@ -59,8 +60,12 @@ def invalid_grant() -> UserAuthGrant:
 @pytest.fixture
 def userauthfilename() -> Generator[str, None, None]:
     """Create a tempfile with a user auth saved in it, yield the filename."""
+    # The client id is not part of the response and needs to be added here instead
+    contents = copy.deepcopy(MOCK_USER_AUTH_RESPONSE)
+    contents["client_id"] = "mock_id"
+
     with tempfile.NamedTemporaryFile() as authfile:
-        authfile.write(json.dumps(MOCK_USER_AUTH_RESPONSE).encode())
+        authfile.write(json.dumps(contents).encode())
         authfile.seek(0)
         yield authfile.name
 
@@ -103,6 +108,7 @@ def test_get_authorization_success(
     assert userauth.refresh_token == "mock_refresh_token"
     assert userauth.scope == ("user:email:read",)
     assert userauth.token_type == "bearer"
+    assert userauth.client_id == "mock_id"
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -176,12 +182,12 @@ def test_get_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> N
     # Authentication calculates time to expires so we need a static, testable time.
     static_time = 100.0
     monkeypatch.setattr(time, "time", lambda: static_time)
-    user_auth = UserAuth.parse_response(MOCK_USER_AUTH_RESPONSE)
+    user_auth = UserAuth.parse_response(MOCK_USER_AUTH_RESPONSE, "new_mock_id")
 
     mock_response = json.dumps(MOCK_USER_AUTH_RESPONSE | {"access_token": "new_mock_access_token"})
 
     params_match = {
-        "client_id": "mock_id",
+        "client_id": "new_mock_id",
         "client_secret": "mock_secret",
         "grant_type": "refresh_token",
         "refresh_token": "mock_refresh_token",
@@ -195,7 +201,7 @@ def test_get_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> N
     )
 
     new_user_auth = get_authorization(
-        twitch_app_client_id="mock_id",
+        twitch_app_client_id="new_mock_id",
         twitch_app_client_secret="mock_secret",
         user_auth=user_auth,
     )
@@ -208,6 +214,7 @@ def test_get_authorization_refresh_success(monkeypatch: pytest.MonkeyPatch) -> N
     assert new_user_auth.refresh_token == "mock_refresh_token"
     assert new_user_auth.scope == ("user:email:read",)
     assert new_user_auth.token_type == "bearer"
+    assert new_user_auth.client_id == "new_mock_id"
 
 
 @responses.activate(assert_all_requests_are_fired=True)
@@ -280,9 +287,10 @@ def test_load_user_authorization_missing_file() -> None:
 
 def test_save_user_authorization_success(userauthfilename: str) -> None:
     """Save user authorization to a file."""
-    expected = copy.deepcopy(MOCK_USER_AUTH_RESPONSE)
+    expected: dict[str, Any] = copy.deepcopy(MOCK_USER_AUTH_RESPONSE)
     expected["access_token"] = "newmocktoken"
-    userauth = UserAuth.parse_response(expected)
+    expected["client_id"] = "mock_id"
+    userauth = UserAuth.parse_response(expected, expected["client_id"])
 
     save_user_authorization(userauth, userauthfilename)
 

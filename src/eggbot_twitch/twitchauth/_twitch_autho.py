@@ -61,10 +61,10 @@ def get_authorization(
             }
         )
 
-    return _request_token(data)
+    return _request_token(data, twitch_app_client_id)
 
 
-def _request_token(data: dict[str, str]) -> UserAuth | ClientAuth | None:
+def _request_token(data: dict[str, str], client_id: str) -> UserAuth | ClientAuth | None:
     """Request a token, either new or a refresh, given the API data to post."""
     response = requests.post(_AUTHO_TOKEN_URL, data=data)
 
@@ -78,10 +78,10 @@ def _request_token(data: dict[str, str]) -> UserAuth | ClientAuth | None:
 
     try:
         if data["grant_type"] == "client_credentials":
-            return ClientAuth.parse_response(response.json())
+            return ClientAuth.parse_response(response.json(), client_id)
 
         else:
-            return UserAuth.parse_response(response.json())
+            return UserAuth.parse_response(response.json(), client_id)
 
     except KeyError:
         logger.error("Unable to parse unexpected response format.")
