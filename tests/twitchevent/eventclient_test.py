@@ -37,7 +37,7 @@ class MockEventServer(threading.Thread):
 
     def __init__(self, host: str, port: int) -> None:
         super().__init__()
-        self.host = host
+        self.host = host.replace("ws://", "").replace("wss://", "")
         self.port = port
 
     def run(self) -> None:
@@ -79,7 +79,7 @@ class MockEventServer(threading.Thread):
 
 
 def test_event_connnect() -> None:
-    host = "localhost"
+    host = "ws://localhost"
     port = 5006
     server = MockEventServer(host, port)
 
