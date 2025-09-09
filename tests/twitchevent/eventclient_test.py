@@ -20,7 +20,11 @@ class MockEventServer(threading.Thread):
         """Run the websocket server forever."""
         handler = partial(self.message_handler, self.timeout_at)
         with serve(handler, self.host, self.port) as server:
-            server.serve_forever()
+            self.server = server
+            self.server.serve_forever()
+
+    def shutdown(self) -> None:
+        self.server.shutdown()
 
     @staticmethod
     def message_handler(timeout_at: float, websocket: ServerConnection) -> None:
@@ -28,3 +32,5 @@ class MockEventServer(threading.Thread):
             message = websocket.recv()
 
             print(f"Recieved: {message=}")
+
+        websocket.close()
