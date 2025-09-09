@@ -1,11 +1,36 @@
 from __future__ import annotations
 
+import json
+import queue
 import threading
-import time
-from functools import partial
 
+from websockets import Request
+from websockets import Response
 from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
+
+from eggbot_twitch.twitchevent import get_session_id
+
+MOCK_HANDSHAKE_RESPONSE = {
+    "metadata": {
+        "message_id": "c7f09613-7b34-4093-b44c-305c6a36bb04",
+        "message_type": "session_welcome",
+        "message_timestamp": "2025-09-09T03:19:44.99039766Z",
+    },
+    "payload": {
+        "session": {
+            "id": "mock_websocket_id",
+            "status": "connected",
+            "connected_at": "2025-09-09T03:19:44.986763032Z",
+            "keepalive_timeout_seconds": 10,
+            "reconnect_url": None,
+            "recovery_url": None,
+        }
+    },
+}
+
+STEPSERVER = threading.Event()
+SENDQUEUE: queue.Queue[str] = queue.Queue()
 
 
 class MockEventServer(threading.Thread):
@@ -14,23 +39,57 @@ class MockEventServer(threading.Thread):
         super().__init__()
         self.host = host
         self.port = port
-        self.timeout_at = time.time() + 2
 
     def run(self) -> None:
         """Run the websocket server forever."""
-        handler = partial(self.message_handler, self.timeout_at)
-        with serve(handler, self.host, self.port) as server:
+        with serve(
+            self.message_handler,
+            self.host,
+            self.port,
+            process_response=self.response_hook,
+        ) as server:
             self.server = server
             self.server.serve_forever()
 
     def shutdown(self) -> None:
+        STEPSERVER.set()
         self.server.shutdown()
 
     @staticmethod
-    def message_handler(timeout_at: float, websocket: ServerConnection) -> None:
-        while time.time() < timeout_at:
-            message = websocket.recv()
+    def message_handler(websocket: ServerConnection) -> None:
+        while not STEPSERVER.is_set():
+            try:
+                message = SENDQUEUE.get(timeout=0.1)
+            except queue.Empty:
+                continue
 
-            print(f"Recieved: {message=}")
+            websocket.send(message)
 
         websocket.close()
+
+    @staticmethod
+    def response_hook(
+        websocket: ServerConnection,
+        request: Request,
+        response: Response,
+    ) -> Response:
+        # Return a handshake with session id on join
+        SENDQUEUE.put(json.dumps(MOCK_HANDSHAKE_RESPONSE))
+        return response
+
+
+def test_event_connnect() -> None:
+    host = "localhost"
+    port = 5006
+    server = MockEventServer(host, port)
+
+    server.start()
+
+    try:
+        sessionid = get_session_id(host, port)
+
+    finally:
+        server.shutdown()
+        server.join()
+
+    assert sessionid == "mock_websocket_id"

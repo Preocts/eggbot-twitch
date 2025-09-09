@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import json
+import logging
+
+import websockets.sync.client
 from eggviron import Eggviron
 from eggviron import EnvFileLoader
 
 from .twitchauth import get_authorization
 from .twitchauth import get_user_grant
+
+logging.basicConfig(
+    format="%(asctime)s %(message)s",
+    level=logging.DEBUG,
+)
 
 if __name__ == "__main__":
     try:
@@ -71,5 +80,13 @@ if __name__ == "__main__":
         raise SystemExit(1)
 
     print("Authentication granted.")
+
+    twitch_websocket_url = "wss://eventsub.wss.twitch.tv/ws"
+
+    with websockets.sync.client.connect(twitch_websocket_url) as websocket:
+
+        message = websocket.recv(timeout=15.0)
+
+        print(json.dumps(json.loads(message), indent=4))
 
     raise SystemExit(0)
