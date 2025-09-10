@@ -8,6 +8,8 @@ import websockets.sync.client
 
 from ._session import Session
 
+# TODO
+# - capture exit signal sigkill, clean up all sessions
 
 _SESSIONS: dict[str, Session] = {}
 _CONNECTION_TIMEOUT_SECONDS = 30.0
@@ -62,3 +64,10 @@ def _session_thread(session: Session) -> None:
     finally:
         session.active = False
 
+
+def end_session_thread(session_id: str | None) -> None:
+    """Closes given session thread. If None is given, closes all open threads."""
+    for session in _SESSIONS.values():
+        if session_id is None or session_id == session.session_id:
+            session.stop_flag.set()
+            session.thread.join()
