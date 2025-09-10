@@ -4,12 +4,15 @@ import copy
 import json
 import queue
 import threading
+import time
 import uuid
+from collections.abc import Generator
 from typing import Any
 
 import pytest
 from websockets import Request
 from websockets import Response
+from websockets.sync.server import Server
 from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
 
@@ -45,6 +48,7 @@ class MockEventServer(threading.Thread):
         super().__init__()
         self.host = host.replace("ws://", "").replace("wss://", "")
         self.port = port
+        self.server: Server | None = None
 
     def run(self) -> None:
         """Run the websocket server forever."""
@@ -59,7 +63,8 @@ class MockEventServer(threading.Thread):
 
     def shutdown(self) -> None:
         STEPSERVER.set()
-        self.server.shutdown()
+        if self.server:  # pragma: no cover
+            self.server.shutdown()
 
     @staticmethod
     def message_handler(websocket: ServerConnection) -> None:
@@ -86,32 +91,48 @@ class MockEventServer(threading.Thread):
         return response
 
 
-def test_start_session_thread() -> None:
-    """Start a session thread and assert the session id is returned"""
-    host = "ws://localhost"
-    port = 5006
-    server = MockEventServer(host, port)
-    sessionid: str | None = None
+HOST = "ws://localhost"
+PORT = 5006
 
-    server.start()
+
+@pytest.fixture(scope="session", autouse=True)
+def session_for_tests() -> Generator[None, None, None]:
+    server = MockEventServer(HOST, PORT)
 
     try:
-        sessionid = start_session_thread(host, port)
+        server.start()
+        # Give the server time to spin up
+        # TODO: Is there *any* way to detect this? Maybe ping the port until an answer?
+        time.sleep(2)
+        yield None
+
+    finally:
+        server.shutdown()
+
+
+def test_start_session_thread() -> None:
+    """Start a session thread and assert the session id is returned"""
+    sessionid: str | None = None
+
+    try:
+        sessionid = start_session_thread(HOST, PORT)
 
     finally:
         end_session_thread(sessionid)
-        server.shutdown()
-        server.join()
 
     assert sessionid.startswith("mock_session_id")
 
 
 def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the failsafe hard timeout that prevents an infinate block on starting sessions."""
-    host = "ws://localhost"
-    port = 5006
+    # TODO: Something here is causing a thread exception
     monkeypatch.setattr(eventclient_module, "_CONNECTION_TIMEOUT_SECONDS", 0.0)
     pattern = "Connection to session hit max timeout."
+    sessionid: str | None = None
 
-    with pytest.raises(TimeoutError, match=pattern):
-        start_session_thread(host, port)
+    try:
+        with pytest.raises(TimeoutError, match=pattern):
+            start_session_thread(HOST, PORT)
+
+    finally:
+        end_session_thread(sessionid)
