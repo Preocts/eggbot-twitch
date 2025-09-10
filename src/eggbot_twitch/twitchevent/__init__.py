@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from ._eventclient import end_session_thread
 from ._eventclient import start_session_thread
 
 __all__ = [
-    "get_session_id",
+    "end_session_thread",
     "start_session_thread",
 ]
