@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import copy
 import json
 import queue
 import threading
+import uuid
+from typing import Any
 
 import pytest
 from websockets import Request
@@ -14,7 +17,7 @@ from eggbot_twitch.twitchevent import _eventclient as eventclient_module
 from eggbot_twitch.twitchevent import end_session_thread
 from eggbot_twitch.twitchevent import start_session_thread
 
-MOCK_HANDSHAKE_RESPONSE = {
+MOCK_HANDSHAKE_RESPONSE: dict[str, Any] = {
     "metadata": {
         "message_id": "c7f09613-7b34-4093-b44c-305c6a36bb04",
         "message_type": "session_welcome",
@@ -22,7 +25,7 @@ MOCK_HANDSHAKE_RESPONSE = {
     },
     "payload": {
         "session": {
-            "id": "mock_websocket_id",
+            "id": "mock_session_id",
             "status": "connected",
             "connected_at": "2025-09-09T03:19:44.986763032Z",
             "keepalive_timeout_seconds": 10,
@@ -77,7 +80,9 @@ class MockEventServer(threading.Thread):
         response: Response,
     ) -> Response:
         # Return a handshake with session id on join
-        SENDQUEUE.put(json.dumps(MOCK_HANDSHAKE_RESPONSE))
+        message = copy.deepcopy(MOCK_HANDSHAKE_RESPONSE)
+        message["payload"]["session"]["id"] = f"mock_session_id:{uuid.uuid4()}"
+        SENDQUEUE.put(json.dumps(message))
         return response
 
 
@@ -98,7 +103,7 @@ def test_start_session_thread() -> None:
         server.shutdown()
         server.join()
 
-    assert sessionid == "mock_websocket_id"
+    assert sessionid.startswith("mock_session_id")
 
 
 def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -110,4 +115,3 @@ def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> N
 
     with pytest.raises(TimeoutError, match=pattern):
         start_session_thread(host, port)
-
