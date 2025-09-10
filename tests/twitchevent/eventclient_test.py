@@ -10,6 +10,7 @@ from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
 
 from eggbot_twitch.twitchevent import get_session_id
+from eggbot_twitch.twitchevent import start_session_thread
 
 MOCK_HANDSHAKE_RESPONSE = {
     "metadata": {
@@ -79,17 +80,22 @@ class MockEventServer(threading.Thread):
 
 
 def test_event_connnect() -> None:
+def test_start_session_thread() -> None:
+    """Start a session thread and assert the session id is returned"""
     host = "ws://localhost"
     port = 5006
     server = MockEventServer(host, port)
+    sessionid: str | None = None
 
     server.start()
 
     try:
-        sessionid = get_session_id(host, port)
+        sessionid = start_session_thread(host, port)
 
     finally:
+        end_session_thread(sessionid)
         server.shutdown()
         server.join()
 
     assert sessionid == "mock_websocket_id"
+
