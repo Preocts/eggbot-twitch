@@ -4,12 +4,14 @@ import json
 import queue
 import threading
 
+import pytest
 from websockets import Request
 from websockets import Response
 from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
 
-from eggbot_twitch.twitchevent import get_session_id
+from eggbot_twitch.twitchevent import _eventclient as eventclient_module
+from eggbot_twitch.twitchevent import end_session_thread
 from eggbot_twitch.twitchevent import start_session_thread
 
 MOCK_HANDSHAKE_RESPONSE = {
@@ -79,7 +81,6 @@ class MockEventServer(threading.Thread):
         return response
 
 
-def test_event_connnect() -> None:
 def test_start_session_thread() -> None:
     """Start a session thread and assert the session id is returned"""
     host = "ws://localhost"
@@ -98,4 +99,15 @@ def test_start_session_thread() -> None:
         server.join()
 
     assert sessionid == "mock_websocket_id"
+
+
+def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test the failsafe hard timeout that prevents an infinate block on starting sessions."""
+    host = "ws://localhost"
+    port = 5006
+    monkeypatch.setattr(eventclient_module, "_CONNECTION_TIMEOUT_SECONDS", 0.0)
+    pattern = "Connection to session hit max timeout."
+
+    with pytest.raises(TimeoutError, match=pattern):
+        start_session_thread(host, port)
 
