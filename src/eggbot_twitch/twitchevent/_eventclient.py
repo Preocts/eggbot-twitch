@@ -12,7 +12,8 @@ from ._session import Session
 # - capture exit signal sigkill, clean up all sessions
 
 _SESSIONS: dict[str, Session] = {}
-_CONNECTION_TIMEOUT_SECONDS = 30.0
+_INITIAL_MESSAGE_TIMEOUT_SECONDS = 10.0
+_CONNECTION_TIMEOUT_SECONDS = _INITIAL_MESSAGE_TIMEOUT_SECONDS + 1
 
 
 def start_session_thread(host: str, port: int | None) -> str:
@@ -56,7 +57,7 @@ def _session_thread(session: Session) -> None:
 
             # I'm assuming the first message will be the session_id
             # That's safe.... right?
-            init_message = websocket.recv(timeout=10)
+            init_message = websocket.recv(timeout=_INITIAL_MESSAGE_TIMEOUT_SECONDS)
             _init_message = json.loads(init_message)
 
             session.session_id = _init_message["payload"]["session"]["id"]
