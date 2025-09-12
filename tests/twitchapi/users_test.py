@@ -7,9 +7,9 @@ import pytest
 import responses
 from responses import matchers
 
-from eggbot_twitch.twichapi import BadRequestError
-from eggbot_twitch.twichapi import UnauthorizedError
-from eggbot_twitch.twichapi import get_users_raw
+from eggbot_twitch.twitchapi import BadRequestError
+from eggbot_twitch.twitchapi import UnauthorizedError
+from eggbot_twitch.twitchapi import get_users_raw
 
 
 @dataclasses.dataclass
