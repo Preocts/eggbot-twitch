@@ -25,7 +25,7 @@ def delayed_get_request(delay: float, url: str) -> Generator[None, None, None]:
         try:
             requests.get(url)
 
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError:  # pragma: no cover
             if retry < _MAX_RETRIES:
                 send_request_delayed(0.0, url, retry=retry + 1)
 
