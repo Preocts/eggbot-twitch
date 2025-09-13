@@ -13,14 +13,21 @@ import requests
 from eggbot_twitch.twitchauth import UserAuthGrant
 from eggbot_twitch.twitchauth import get_user_grant
 
+_MAX_RETRIES = 5
+
 
 @contextlib.contextmanager
-def delayed_get_request(delay: int, url: str) -> Generator[None, None, None]:
+def delayed_get_request(delay: float, url: str) -> Generator[None, None, None]:
     """Spin up a thread that fires a GET to 'url' after 'delay' seconds."""
 
-    def send_request_delayed(delay: int, url: str) -> None:
+    def send_request_delayed(delay: float, url: str, *, retry: int = 0) -> None:
         time.sleep(delay)
-        requests.get(url)
+        try:
+            requests.get(url)
+
+        except requests.exceptions.ConnectionError:
+            if retry < _MAX_RETRIES:
+                send_request_delayed(0.0, url, retry=retry + 1)
 
     thread = threading.Thread(target=send_request_delayed, args=(delay, url))
     try:
@@ -50,7 +57,7 @@ def test_get_user_grant_success() -> None:
     stdout = io.StringIO()
 
     with contextlib.redirect_stdout(stdout):
-        with delayed_get_request(1, callback_url):
+        with delayed_get_request(0.2, callback_url):
             authorization = get_user_grant(
                 callback_host="localhost",
                 callback_port=5005,
@@ -76,7 +83,7 @@ def test_get_user_grant_unsuccess() -> None:
         error_description="The user denied you access",
     )
 
-    with delayed_get_request(1, callback_url):
+    with delayed_get_request(0.2, callback_url):
         authorization = get_user_grant(
             callback_host="localhost",
             callback_port=5005,
@@ -93,7 +100,7 @@ def test_get_user_grant_state_mismatch() -> None:
     """Validate that state mismatch is handled."""
     callback_url = "http://localhost:5005/callback?error=access_denied&error_description=The+user+denied+you+access&state=abc"
 
-    with delayed_get_request(1, callback_url):
+    with delayed_get_request(0.2, callback_url):
         authorization = get_user_grant(
             callback_host="localhost",
             callback_port=5005,
@@ -123,7 +130,7 @@ def test_get_user_grant_timeout() -> None:
 def test_get_user_grant_timeout_with_unexpect_response() -> None:
     """Validate that timeout is handled."""
     callback_url = "http://localhost:5005/somethingelse"
-    with delayed_get_request(1, callback_url):
+    with delayed_get_request(0.2, callback_url):
         authorization = get_user_grant(
             callback_host="localhost",
             callback_port=5005,
