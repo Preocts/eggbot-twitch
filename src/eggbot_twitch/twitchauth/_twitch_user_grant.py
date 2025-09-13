@@ -16,7 +16,7 @@ from .userauthgrant import UserAuthGrant
 _AUTHO_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger("twitchauth")
-_caught_autho_requets: queue.Queue[Request] = queue.Queue()
+_caught_autho_requests: queue.Queue[Request] = queue.Queue()
 
 
 class RedirectCatcher(threading.Thread):
@@ -34,7 +34,7 @@ class RedirectCatcher(threading.Thread):
     @Request.application
     def application(request: Request) -> Response:
         """Handle requests to the server."""
-        _caught_autho_requets.put(request)
+        _caught_autho_requests.put(request)
 
         return Response("🥚")
 
@@ -80,7 +80,7 @@ def wait_for_auth_response(timeout_seconds: int) -> UserAuthGrant:
     timeout_at = time.time() + timeout_seconds
     while time.time() <= timeout_at:
         try:
-            request = _caught_autho_requets.get(timeout=0.1)
+            request = _caught_autho_requests.get(timeout=0.1)
 
         except queue.Empty:
             continue
