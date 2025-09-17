@@ -72,6 +72,7 @@ class MockEventServer(threading.Thread):
         self.host = host.replace("ws://", "").replace("wss://", "")
         self.port = port
         self.server: Server | None = None
+        self.sender = MockMessageSender()
 
     def run(self) -> None:
         """Run the websocket server forever."""
@@ -82,6 +83,7 @@ class MockEventServer(threading.Thread):
             process_response=self.response_hook,
             compression=None,
         ) as server:
+            self.sender.start()
             self.server = server
             self.server.serve_forever()
 
