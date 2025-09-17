@@ -10,7 +10,6 @@ import uuid
 from collections.abc import Generator
 from typing import Any
 
-
 import pytest
 from websockets import Request
 from websockets import Response
@@ -77,7 +76,7 @@ class MockEventServer(threading.Thread):
     def run(self) -> None:
         """Run the websocket server forever."""
         with serve(
-            self.message_handler,
+            lambda x: None,
             self.host,
             self.port,
             process_response=self.response_hook,
@@ -91,11 +90,6 @@ class MockEventServer(threading.Thread):
         STOPSERVER.set()
         if self.server:  # pragma: no cover
             self.server.shutdown()
-
-    @staticmethod
-    def message_handler(websocket: ServerConnection) -> None:
-        websocket.recv(timeout=10.0)
-        return None
 
     @staticmethod
     def response_hook(
