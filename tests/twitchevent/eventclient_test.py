@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import json
 import queue
 import threading
@@ -8,6 +9,7 @@ import time
 import uuid
 from collections.abc import Generator
 from typing import Any
+
 
 import pytest
 from websockets import Request
@@ -38,8 +40,29 @@ MOCK_HANDSHAKE_RESPONSE: dict[str, Any] = {
     },
 }
 
-STEPSERVER = threading.Event()
-SENDQUEUE: queue.Queue[str] = queue.Queue()
+STOPSERVER = threading.Event()
+SENDQUEUE: queue.Queue[PendingMessage] = queue.Queue()
+
+
+@dataclasses.dataclass
+class PendingMessage:
+    message: str
+    websocket: ServerConnection
+
+
+class MockMessageSender(threading.Thread):
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def run(self) -> None:
+        while not STOPSERVER.is_set():
+            try:
+                pending_message = SENDQUEUE.get(timeout=0.1)
+            except queue.Empty:
+                continue
+
+            pending_message.websocket.send(pending_message.message)
 
 
 class MockEventServer(threading.Thread):
@@ -57,26 +80,20 @@ class MockEventServer(threading.Thread):
             self.host,
             self.port,
             process_response=self.response_hook,
+            compression=None,
         ) as server:
             self.server = server
             self.server.serve_forever()
 
     def shutdown(self) -> None:
-        STEPSERVER.set()
+        STOPSERVER.set()
         if self.server:  # pragma: no cover
             self.server.shutdown()
 
     @staticmethod
     def message_handler(websocket: ServerConnection) -> None:
-        while not STEPSERVER.is_set():
-            try:
-                message = SENDQUEUE.get(timeout=0.1)
-            except queue.Empty:
-                continue
-
-            websocket.send(message)
-
-        websocket.close()
+        websocket.recv(timeout=10.0)
+        return None
 
     @staticmethod
     def response_hook(
@@ -87,7 +104,7 @@ class MockEventServer(threading.Thread):
         # Return a handshake with session id on join
         message = copy.deepcopy(MOCK_HANDSHAKE_RESPONSE)
         message["payload"]["session"]["id"] = f"mock_session_id:{uuid.uuid4()}"
-        SENDQUEUE.put(json.dumps(message))
+        SENDQUEUE.put(PendingMessage(json.dumps(message), websocket))
         return response
 
 
