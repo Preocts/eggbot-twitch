@@ -149,3 +149,6 @@ def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> N
 
     finally:
         end_session_thread(sessionid)
+
+
+# def test_end_session_thread_with_session_id() -> None:
