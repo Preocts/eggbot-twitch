@@ -47,12 +47,13 @@ def get_session(host: str, port: int | None) -> Session:
             return session
 
         if session.exception is not None:
-            session.thread.join()
+            session.close()
             msg = f"Failed to establish connection to websocket server after {_MAX_CONNECTION_RETRIES} retries. {session.exception}"
             raise ConnectionError(msg) from session.exception
 
         time.sleep(0.1)
 
+    session.close()
     raise TimeoutError("Connection to session hit max timeout.")
 
 
@@ -86,7 +87,7 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
             time.sleep(backoff)
             _session_thread(session, retry_count + 1)
         else:
-            logger.error("Connection failed %s", exc, exc_info=True)
+            logger.error("Connection failed %s", exc)
             session.exception = exc
 
     finally:
