@@ -16,3 +16,4 @@ class Session:
     messages: queue.Queue[str] = queue.Queue()
     thread: threading.Thread = threading.Thread()
     stop_flag: threading.Event = threading.Event()
+    exception: Exception | None = None

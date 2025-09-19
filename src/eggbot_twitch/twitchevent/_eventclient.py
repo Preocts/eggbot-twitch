@@ -4,7 +4,6 @@ import json
 import threading
 import time
 
-from websockets import ConnectionClosedError
 import websockets.sync.client
 
 from ._session import Session
@@ -45,6 +44,11 @@ def start_session_thread(host: str, port: int | None) -> str:
         if session.session_id:
             _SESSIONS[session.session_id] = session
             return session.session_id
+
+        if session.exception is not None:
+            msg = f"Failed to establish connection to websocket server after {_MAX_CONNECTION_RETRIES} retries. {session.exception}"
+            raise ConnectionError(msg) from session.exception
+
         time.sleep(0.1)
 
     raise TimeoutError("Connection to session hit max timeout.")
@@ -66,13 +70,10 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
 
     except (ConnectionResetError, ConnectionRefusedError) as exc:
         if retry_count < _MAX_CONNECTION_RETRIES:
+            time.sleep(0.3 * retry_count)
             _session_thread(session, retry_count + 1)
         else:
-            msg = f"Failed to establish connection to websocket server after {retry_count} retries.: {exc}"
-            raise ConnectionResetError(msg)
-
-    except ConnectionClosedError:
-        pass
+            session.exception = exc
 
     finally:
         session.active = False

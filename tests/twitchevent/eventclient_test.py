@@ -109,7 +109,6 @@ def test_start_session_thread() -> None:
 
 def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the failsafe hard timeout that prevents an infinate block on starting sessions."""
-    # TODO: Something here is causing a thread exception
     monkeypatch.setattr(eventclient_module, "_CONNECTION_TIMEOUT_SECONDS", 0.0)
     pattern = "Connection to session hit max timeout."
     sessionid: str | None = None
@@ -122,4 +121,8 @@ def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> N
         end_session_thread(sessionid)
 
 
-# def test_end_session_thread_with_session_id() -> None:
+def test_start_session_retries_and_fails_without_server() -> None:
+    pattern = "Failed to establish connection to websocket server after 3 retries"
+
+    with pytest.raises(ConnectionError, match=pattern):
+        start_session_thread(HOST, PORT + 1)
