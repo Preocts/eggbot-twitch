@@ -67,6 +67,15 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
 
             session.session_id = _init_message["payload"]["session"]["id"]
 
+            while not session.stop_flag.is_set():
+                try:
+                    message = websocket.recv(timeout=0.1)
+
+                except TimeoutError:
+                    continue
+
+                print(message)
+
     except (ConnectionResetError, ConnectionRefusedError) as exc:
         if retry_count < _MAX_CONNECTION_RETRIES:
             time.sleep(0.3 * retry_count)
