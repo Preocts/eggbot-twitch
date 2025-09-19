@@ -5,6 +5,7 @@ import dataclasses
 import json
 import queue
 import threading
+import time
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -177,6 +178,9 @@ def session_for_tests() -> Generator[None, None, None]:
 
     finally:
         server.is_serving.clear()
+        # Odd timing behavior from GHA. Without a delay here to allow the handler
+        # to exit, coverage will not see the branch exit.
+        time.sleep(0.2)
         server.server.shutdown()
         server.join()
 
