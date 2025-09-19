@@ -5,15 +5,11 @@ import dataclasses
 import json
 import queue
 import threading
-import time
 import uuid
 from collections.abc import Generator
 from typing import Any
 
 import pytest
-from websockets import Request
-from websockets import Response
-from websockets.sync.server import Server
 from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
 
@@ -39,29 +35,12 @@ MOCK_HANDSHAKE_RESPONSE: dict[str, Any] = {
     },
 }
 
-STOPSERVER = threading.Event()
-SENDQUEUE: queue.Queue[PendingMessage] = queue.Queue()
 
-
-@dataclasses.dataclass
-class PendingMessage:
-    message: str
-    websocket: ServerConnection
-
-
-class MockMessageSender(threading.Thread):
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def run(self) -> None:
-        while not STOPSERVER.is_set():
-            try:
-                pending_message = SENDQUEUE.get(timeout=0.1)
-            except queue.Empty:
-                continue
-
-            pending_message.websocket.send(pending_message.message)
+@dataclasses.dataclass(frozen=True)
+class Client:
+    uid: str
+    connection: ServerConnection
+    send_queue: queue.Queue[str] = dataclasses.field(default_factory=queue.Queue)
 
 
 class MockEventServer(threading.Thread):
@@ -70,38 +49,31 @@ class MockEventServer(threading.Thread):
         super().__init__()
         self.host = host.replace("ws://", "").replace("wss://", "")
         self.port = port
-        self.server: Server | None = None
-        self.sender = MockMessageSender()
+        self.server = serve(self.handler, self.host, self.port)
+
+        self.is_serving = threading.Event()
+        self.clients: set[Client] = set()
 
     def run(self) -> None:
         """Run the websocket server forever."""
-        with serve(
-            lambda x: None,
-            self.host,
-            self.port,
-            process_response=self.response_hook,
-            compression=None,
-        ) as server:
-            self.sender.start()
-            self.server = server
-            self.server.serve_forever()
+        self.is_serving.set()
+        self.server.serve_forever()
 
-    def shutdown(self) -> None:
-        STOPSERVER.set()
-        if self.server:  # pragma: no cover
-            self.server.shutdown()
+    def handler(self, websocket: ServerConnection) -> None:
+        # Runs in a thread on client connection, handled by server
+        client = Client(str(uuid.uuid4()), websocket)
 
-    @staticmethod
-    def response_hook(
-        websocket: ServerConnection,
-        request: Request,
-        response: Response,
-    ) -> Response:
-        # Return a handshake with session id on join
         message = copy.deepcopy(MOCK_HANDSHAKE_RESPONSE)
-        message["payload"]["session"]["id"] = f"mock_session_id:{uuid.uuid4()}"
-        SENDQUEUE.put(PendingMessage(json.dumps(message), websocket))
-        return response
+        message["payload"]["session"]["id"] = f"mock_session_id:{client.uid}"
+        client.send_queue.put(json.dumps(message))
+
+        while self.is_serving.is_set():
+            try:
+                send_message = client.send_queue.get(timeout=0.1)
+                client.connection.send(send_message)
+
+            except TimeoutError:
+                continue
 
 
 HOST = "ws://localhost"
@@ -114,13 +86,12 @@ def session_for_tests() -> Generator[None, None, None]:
 
     try:
         server.start()
-        # Give the server time to spin up
-        # TODO: Is there *any* way to detect this? Maybe ping the port until an answer?
-        time.sleep(2)
         yield None
 
     finally:
-        server.shutdown()
+        server.is_serving.clear()
+        server.server.shutdown()
+        server.join()
 
 
 def test_start_session_thread() -> None:
