@@ -14,8 +14,7 @@ from websockets.sync.server import ServerConnection
 from websockets.sync.server import serve
 
 from eggbot_twitch.twitchevent import _eventclient as eventclient_module
-from eggbot_twitch.twitchevent import end_session_thread
-from eggbot_twitch.twitchevent import start_session_thread
+from eggbot_twitch.twitchevent import get_session
 
 MOCK_HANDSHAKE_RESPONSE: dict[str, Any] = {
     "metadata": {
@@ -96,33 +95,23 @@ def session_for_tests() -> Generator[None, None, None]:
 
 def test_start_session_thread() -> None:
     """Start a session thread and assert the session id is returned"""
-    sessionid: str | None = None
+    session = get_session(HOST, PORT)
+    session.close()
 
-    try:
-        sessionid = start_session_thread(HOST, PORT)
-
-    finally:
-        end_session_thread(sessionid)
-
-    assert sessionid.startswith("mock_session_id")
+    assert session.session_id.startswith("mock_session_id")
 
 
 def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the failsafe hard timeout that prevents an infinate block on starting sessions."""
     monkeypatch.setattr(eventclient_module, "_CONNECTION_TIMEOUT_SECONDS", 0.0)
     pattern = "Connection to session hit max timeout."
-    sessionid: str | None = None
 
-    try:
-        with pytest.raises(TimeoutError, match=pattern):
-            start_session_thread(HOST, PORT)
-
-    finally:
-        end_session_thread(sessionid)
+    with pytest.raises(TimeoutError, match=pattern):
+        get_session(HOST, PORT)
 
 
 def test_start_session_retries_and_fails_without_server() -> None:
     pattern = "Failed to establish connection to websocket server after 3 retries"
 
     with pytest.raises(ConnectionError, match=pattern):
-        start_session_thread(HOST, PORT + 1)
+        get_session(HOST, PORT + 1)

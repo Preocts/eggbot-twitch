@@ -11,18 +11,16 @@ from ._session import Session
 # TODO
 # - capture exit signal sigkill, clean up all sessions
 
-_SESSIONS: dict[str, Session] = {}
 _INITIAL_MESSAGE_TIMEOUT_SECONDS = 10.0
 _CONNECTION_TIMEOUT_SECONDS = _INITIAL_MESSAGE_TIMEOUT_SECONDS + 1
 _MAX_CONNECTION_RETRIES = 3
 
 
-def start_session_thread(host: str, port: int | None) -> str:
+def get_session(host: str, port: int | None) -> Session:
     """
-    Start a EventSub Session, returns session id needed to get message queue
+    Start a EventSub Session, and return that session.
 
-    Blocks until session is started. If None is returned, the session failed
-    to start and was dropped.
+    Blocks until session is started.
 
     Args:
         host (str): Host name of the websocket endpoint
@@ -30,6 +28,7 @@ def start_session_thread(host: str, port: int | None) -> str:
 
     Raises:
         TimeoutError: If waiting for a session id exceeds _CONNECTION_TIMEOUT_SECONDS
+        ConnectoinError: If the session could not be created
     """
     port = port if port is not None else 80 if host.startswith("ws://") else 443
 
@@ -42,10 +41,10 @@ def start_session_thread(host: str, port: int | None) -> str:
     timeout_at = time.time() + _CONNECTION_TIMEOUT_SECONDS
     while time.time() < timeout_at:
         if session.session_id:
-            _SESSIONS[session.session_id] = session
-            return session.session_id
+            return session
 
         if session.exception is not None:
+            session.thread.join()
             msg = f"Failed to establish connection to websocket server after {_MAX_CONNECTION_RETRIES} retries. {session.exception}"
             raise ConnectionError(msg) from session.exception
 
@@ -77,11 +76,3 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
 
     finally:
         session.active = False
-
-
-def end_session_thread(session_id: str | None) -> None:
-    """Closes given session thread. If None is given, closes all open threads."""
-    for session in _SESSIONS.values():
-        if session_id is None or session_id == session.session_id:
-            session.stop_flag.set()
-            session.thread.join()
