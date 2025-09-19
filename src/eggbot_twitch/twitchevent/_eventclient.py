@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 
@@ -14,6 +15,8 @@ from ._session import Session
 _INITIAL_MESSAGE_TIMEOUT_SECONDS = 10.0
 _CONNECTION_TIMEOUT_SECONDS = _INITIAL_MESSAGE_TIMEOUT_SECONDS + 1
 _MAX_CONNECTION_RETRIES = 3
+
+logger = logging.getLogger("eventclient")
 
 
 def get_session(host: str, port: int | None) -> Session:
@@ -69,18 +72,21 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
 
             while not session.stop_flag.is_set():
                 try:
-                    message = websocket.recv(timeout=0.1)
+                    message = websocket.recv(timeout=0.1, decode=True)
 
                 except TimeoutError:
                     continue
 
-                print(message)
+                session.messages.put(message)
 
     except (ConnectionResetError, ConnectionRefusedError) as exc:
         if retry_count < _MAX_CONNECTION_RETRIES:
-            time.sleep(0.3 * retry_count)
+            backoff = 0.3 * retry_count
+            logger.warning("Connection failed: Attempting reconnect in %s seconds", backoff)
+            time.sleep(backoff)
             _session_thread(session, retry_count + 1)
         else:
+            logger.error("Connection failed %s", exc, exc_info=True)
             session.exception = exc
 
     finally:

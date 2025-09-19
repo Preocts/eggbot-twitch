@@ -184,9 +184,11 @@ def session_for_tests() -> Generator[None, None, None]:
 def test_start_session_thread() -> None:
     """Start a session thread and assert the session id is returned"""
     session = get_session(HOST, PORT)
+    messages = [message for message in session.message_iter()]
     session.close()
 
     assert session.session_id.startswith("mock_session_id")
+    assert len(messages) == 4
 
 
 def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
