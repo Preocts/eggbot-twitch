@@ -19,23 +19,21 @@ _MAX_CONNECTION_RETRIES = 3
 logger = logging.getLogger("eventclient")
 
 
-def get_session(host: str, port: int | None) -> Session:
+def get_session(uri: str) -> Session:
     """
     Start a EventSub Session, and return that session.
 
     Blocks until session is started.
 
     Args:
-        host (str): Host name of the websocket endpoint
-        port (int | None): Port to use. Defaults to 80 (ws://) or 443 (wss://)
+        uri (str): URI of the websocket server
 
     Raises:
         TimeoutError: If waiting for a session id exceeds _CONNECTION_TIMEOUT_SECONDS
         ConnectoinError: If the session could not be created
     """
-    port = port if port is not None else 80 if host.startswith("ws://") else 443
 
-    session = Session(host, port, False)
+    session = Session(uri, False)
 
     session.thread = threading.Thread(target=_session_thread, args=(session,))
 
@@ -62,7 +60,7 @@ def _session_thread(session: Session, retry_count: int = 0) -> None:
     session.active = True
 
     try:
-        with websockets.sync.client.connect(f"{session.host}:{session.port}") as websocket:
+        with websockets.sync.client.connect(session.uri) as websocket:
 
             # I'm assuming the first message will be the session_id
             # That's safe.... right?
