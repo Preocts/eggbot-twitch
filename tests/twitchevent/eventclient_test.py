@@ -166,6 +166,7 @@ class MockEventServer(threading.Thread):
 
 HOST = "ws://localhost"
 PORT = 5006
+URI = "ws://localhost:5006"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -187,7 +188,7 @@ def session_for_tests() -> Generator[None, None, None]:
 
 def test_start_session_thread() -> None:
     """Start a session thread and assert the session id is returned"""
-    session = get_session(HOST, PORT)
+    session = get_session(URI)
     messages = [message for message in session.message_iter()]
     session.close()
 
@@ -201,11 +202,11 @@ def test_start_session_thread_hard_timeout(monkeypatch: pytest.MonkeyPatch) -> N
     pattern = "Connection to session hit max timeout."
 
     with pytest.raises(TimeoutError, match=pattern):
-        get_session(HOST, PORT)
+        get_session(URI)
 
 
 def test_start_session_retries_and_fails_without_server() -> None:
     pattern = "Failed to establish connection to websocket server after 3 retries"
 
     with pytest.raises(ConnectionError, match=pattern):
-        get_session(HOST, PORT + 1)
+        get_session("ws://localhost:9999")

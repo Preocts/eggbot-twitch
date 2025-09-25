@@ -10,8 +10,7 @@ from collections.abc import Iterator
 class Session:
     """Represents a webscocket session."""
 
-    host: str
-    port: int
+    uri: str
     active: bool
     session_id: str = ""
     messages: queue.Queue[str] = dataclasses.field(default_factory=queue.Queue)
